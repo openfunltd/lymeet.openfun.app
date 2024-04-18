@@ -76,7 +76,9 @@ $data = json_decode(file_get_contents($url));
                 <?php foreach ($meet as $k => $v) { ?>
                 <li>
                 <?= htmlspecialchars($k) ?>:
-                <?php if (is_scalar($v)) { ?>
+                <?php if (in_array($k, ['ppg_gazette_url'])) { ?>
+                <a href="<?= htmlspecialchars($v) ?>"><?= htmlspecialchars($v) ?></a>
+                <?php } elseif (is_scalar($v)) { ?>
                 <?= htmlspecialchars($v) ?>
                 <?php } elseif (in_array($k, ['html_files', 'txt_files'])) { ?>
                 <?php foreach ($v as $url) { ?>
