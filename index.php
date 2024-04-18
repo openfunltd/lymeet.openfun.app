@@ -174,26 +174,24 @@ foreach ($gazette_obj->gazettes as $gazette) {
         </td>
         <td>
             <?php if ($meet->{'公報發言紀錄'} ?? false) { ?>
-            <table border="1" style="width: 100%">
                 <?php $dates = []; ?>
-                <?php foreach ($meet->{'公報發言紀錄'} as $gazette) { ?>
+                <?php foreach ($meet->{'公報發言紀錄'} as $idx => $gazette) { ?>
                 <?php $dates[$meet_gazettes[$gazette->gazette_id]->published_at] = 1; ?>
-                <tr>
-                    <td title="<?= htmlspecialchars(json_encode($gazette, JSON_UNESCAPED_UNICODE)) ?>">
-                        <?= htmlspecialchars(mb_strimwidth($gazette->content, 0, 30, '...')) ?>
-                    </td>
-                    <td title="<?= htmlspecialchars(implode(', ', $gazette->speakers)) ?>">
+                <?php if (count($meet->{'公報發言紀錄'}) > 4 and $idx > 1) { continue; } ?>
+                <div>
+                    <span title="<?= htmlspecialchars(json_encode($gazette, JSON_UNESCAPED_UNICODE)) ?>">
+                        <?= $gazette->gazette_id ?>:<?= $gazette->page_start ?>
+                    </span>：
+                    <span title="<?= htmlspecialchars(implode(', ', $gazette->speakers)) ?>">
                         <?= count($gazette->speakers) ?> 人
-                    </td>
-                    <td>
-                        <?php foreach ($gazette->html_files as $f) { ?>
-                        <a href="<?= htmlspecialchars($f) ?>">HTML</a><br>
-                        <?php } ?>
-                    </td>
-                </tr>
+                    </span>
+                </div>
                 <?php } ?>
-            </table>
-            公報出版日：<?= implode(', ', array_keys($dates)) ?>
+
+                <?php if (count($meet->{'公報發言紀錄'}) > 4) { ?>
+                <div> ... 共 <?= count($meet->{'公報發言紀錄'}) ?> 章</div>
+                <?php } ?>
+                公報出版日：<?= implode('<br>', array_keys($dates)) ?>
             <?php } ?>
         </td>
         <td>
