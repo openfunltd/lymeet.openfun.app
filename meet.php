@@ -18,7 +18,9 @@ $data = json_decode(file_get_contents($url));
 <h1><?= htmlspecialchars($data->name) ?></h1>
 <code>API: <?= htmlspecialchars($url) ?></code>
 <hr>
-<h2>會議資料</h2>
+跳到：<a href="#section-meet-data">會議資料</a>、<a href="#section-speech">發言紀錄</a>、<a href="#section-gazette">公報發言紀錄</a>
+<hr>
+<h2 id="section-meet-data">會議資料</h2>
 <h4>本區資料來自 <a href="https://data.ly.gov.tw/getds.action?id=42">立法院資料開放平台</a></h4>
 <table border="1">
     <?php foreach ($data->meet_data ?? [] as $meet) { ?>
@@ -41,7 +43,7 @@ $data = json_decode(file_get_contents($url));
     <?php } ?>
 </table>
 <hr>
-<h1>發言紀錄</h1>
+<h2 id="section-speech">發言紀錄</h2>
 <h4>以下資料來自 <a href="https://data.ly.gov.tw/getds.action?id=221">立法院資料開放平台:院會發言名單</a> 和 <a href="https://data.ly.gov.tw/getds.action?id=223">立法院資料開放平台:委員會登記發言名單</a></h4>
 <table border="1">
     <?php foreach ($data->{'發言紀錄'} ?? [] as $meet) { ?>
@@ -64,7 +66,7 @@ $data = json_decode(file_get_contents($url));
     <?php } ?>
 </table>
 <hr>
-<h1>公報發言紀錄</h1>
+<h2 id="section-gazette">公報發言紀錄</h2>
 <h4>以下資料是從公報的「本期發言目錄」中利用文字處理抓取</h4>
 <table border="1">
     <?php foreach ($data->{'公報發言紀錄'} ?? [] as $meet) { ?>
