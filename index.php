@@ -25,6 +25,15 @@ foreach ($stat->meet->terms as $term_data) {
     }
 }
 $committees = json_decode(file_get_contents(sprintf("https://%s/committee", $domain)));
+$committees->committees = array_filter($committees->committees, function($c) {
+    if ($c->comtType == 1) {
+        return true;
+    }
+    if ($c->comtType == 2) {
+        return true;
+    }
+    return false;
+});
 $params = [];
 if ($_GET['term'] ?? false) {
     $params['term'] = intval($_GET['term']);
@@ -34,6 +43,9 @@ if ($_GET['sessionPeriod'] ?? false) {
 }
 if ($_GET['committee_id'] ?? false) {
     $params['committee_id'] = intval($_GET['committee_id']);
+}
+if ($_GET['meet_type'] ?? false) {
+    $params['meet_type'] = $_GET['meet_type'];
 }
 // 取得會議資料
 $url = "https://" . $domain . "/meet?" . $build_query($params);
@@ -94,16 +106,23 @@ foreach ($gazette_obj->gazettes as $gazette) {
 <?php } ?>
 <?php } ?>
 <p>委員會:
-<?php $new_params = $params; unset($new_params['committee_id']); ?>
+<?php $new_params = $params; unset($new_params['committee_id']); unset($new_params['meet_type']); ?>
 <a href="?<?= $build_query($new_params) ?>">不篩選</a>
+
+<?php if ($params['meet_type'] == '院會') { ?>
+<strong>院會</strong>
+<?php } else { ?>
+<?php $new_params['meet_type'] = '院會'; ?>
+<?php } ?>
+
+<a href="?<?= $build_query($new_params) ?>">院會</a>
+<?php unset($new_params['meet_type']); ?>
 <?php foreach ($committees->committees as $committee) { ?>
     <?php if ($committee->comtCd == $params['committee_id']) { ?>
     <strong><?= htmlspecialchars($committee->comtName) ?></strong>
     <?php } else { ?>
-        <?php if ($committee->comtType == 1) { ?>
         <?php $new_params['committee_id'] = intval($committee->comtCd); ?>
         <a href="?<?= $build_query($new_params) ?>"><?= htmlspecialchars($committee->comtName) ?></a>
-        <?php } ?>
     <?php } ?>
 <?php } ?>
 </p>
