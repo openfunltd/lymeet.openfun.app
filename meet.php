@@ -18,7 +18,7 @@ $data = json_decode(file_get_contents($url));
 <h1><?= htmlspecialchars($data->name) ?></h1>
 <code>API: <?= htmlspecialchars($url) ?></code>
 <hr>
-跳到：<a href="#section-meet-data">會議資料</a>、<a href="#section-speech">發言紀錄</a>、<a href="#section-gazette">公報發言紀錄</a>、<a href="#section-ivod">iVOD記錄</a>
+跳到：<a href="#section-meet-data">會議資料</a>、<a href="#section-speech">發言紀錄</a>、<a href="#section-gazette">公報發言紀錄</a>、<a href="#section-ivod">iVOD記錄</a>、<a href="#section-interpellation">書面質詢</a>
 <hr>
 <h2 id="section-meet-data">會議資料</h2>
 <h4>本區資料來自 <a href="https://data.ly.gov.tw/getds.action?id=42">立法院資料開放平台</a></h4>
@@ -129,7 +129,25 @@ $data = json_decode(file_get_contents($url));
     </tbody>
 </table>
 
+<hr>
+
+<h2 id="section-interpellation">書面質詢</h2>
+<h4>以下資料是從<a href="<?= $data->meet_data[0]->ppg_url ?>">會議紀錄</a>抓取</h4>
+<?php
+$url = "https://{$domain}/meet/" . urlencode($id) . "/interpellation";
+$data = json_decode(file_get_contents($url));
+?>
+<code>API: <?= htmlspecialchars($url) ?></code>
+<ul>
+    <?php foreach ($data->interpellations as $interpellation) { ?>
+    <li>
+    <?= htmlspecialchars($interpellation->reason) ?>
+    <div>
+        <?= nl2br(htmlspecialchars($interpellation->description)) ?>
+    </div>
+    </li>
+    <?php } ?>
+</ul>
 
 </body>
 </html>
-
