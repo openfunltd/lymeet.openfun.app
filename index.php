@@ -112,6 +112,7 @@ foreach ($gazette_obj->gazettes as $gazette) {
         <tr>
             <th>日期</th>
             <th>會議名稱</th>
+            <th>會議頁面</th>
             <th>議事錄</th>
             <th>opendata發言紀錄</th>
             <th>公報紀錄</th>
@@ -128,6 +129,11 @@ foreach ($gazette_obj->gazettes as $gazette) {
             <?= htmlspecialchars($meet->id) ?><br>
             <a href="meet.php?id=<?= urlencode($meet->id) ?>"><?= htmlspecialchars($meet->name) ?></a>
         </td>
+        <td>
+            <?php foreach ($meet->meet_data ?? [] as $meet_data) { ?>
+            <a href="<?= htmlspecialchars($meet_data->ppg_url) ?>"><?= htmlspecialchars($meet_data->date) ?></a><br>
+            <?php } ?>
+        </td>
         <td title="<?= htmlspecialchars(json_encode($meet->{'議事錄'}, JSON_UNESCAPED_UNICODE)) ?>">
             <?php if ($meet->{'議事錄'} ?? false) { ?>
             <a href="<?= htmlspecialchars($meet->{'議事錄'}->ppg_url) ?>">議事錄</a> 
@@ -135,18 +141,16 @@ foreach ($gazette_obj->gazettes as $gazette) {
         </td>
         <td>
             <?php if ($meet->{'發言紀錄'} ?? false) { ?>
-            <table border="1" style="width: 100%">
                 <?php foreach ($meet->{'發言紀錄'} as $speak) { ?>
-                <tr title="<?= htmlspecialchars(json_encode($speak, JSON_UNESCAPED_UNICODE)) ?>">
-                    <td title="<?= htmlspecialchars(json_encode($speak, JSON_UNESCAPED_UNICODE)) ?>">
-                        <?= htmlspecialchars(mb_strimwidth($speak->meetingContent, 0, 30, '...')) ?>
-                    </td>
-                    <td title="<?= htmlspecialchars(implode(', ', $speak->legislatorNameList)) ?>">
+                <div title="<?= htmlspecialchars(json_encode($speak, JSON_UNESCAPED_UNICODE)) ?>">
+                    <span title="<?= htmlspecialchars(json_encode($speak, JSON_UNESCAPED_UNICODE)) ?>">
+                        <?= htmlspecialchars($speak->smeetingDate) ?>
+                    </span>:
+                    <span title="<?= htmlspecialchars(implode(', ', $speak->legislatorNameList)) ?>">
                         <?= count($speak->legislatorNameList) ?> 人
-                    </td>
-                </tr>
+                    </span>
+                </div>
                 <?php } ?>
-            </table>
             <?php } ?>
         </td>
         <td>
