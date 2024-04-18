@@ -14,6 +14,16 @@ if (file_exists(__DIR__ . '/config.php')) {
     }
 }
 $stat = json_decode(file_get_contents(sprintf("https://%s/stat", $domain)));
+$session_periods = [];
+foreach ($stat->meet->terms as $term_data) {
+    $term = $term_data->term;
+    if (!isset($session_periods[$term])) {
+        $session_periods[$term] = [];
+    }
+    foreach ($term_data->sessionPeriod_count as $session_data) {
+        $session_periods[$term][] = $session_data;
+    }
+}
 $committees = json_decode(file_get_contents(sprintf("https://%s/committee", $domain)));
 $params = [];
 if ($_GET['term'] ?? false) {
@@ -59,7 +69,7 @@ foreach ($gazette_obj->gazettes as $gazette) {
 </head>
 <body>
 <p>屆期:
-<?php $new_params = $params; unset($new_params['term']); ?>
+<?php $new_params = $params; unset($new_params['term']); unset($new_params['sessionPeriod']); ?>
 <a href="?<?= $build_query($new_params) ?>">不篩選</a>
 <?php foreach ($stat->meet->terms as $term_data) { ?>
     <?php if ($term_data->term == $params['term']) { ?>
@@ -70,6 +80,19 @@ foreach ($gazette_obj->gazettes as $gazette) {
     <?php } ?>
 <?php } ?>
 </p>
+<?php if ($params['term']) { ?>
+<p>會期：
+<?php $new_params = $params; unset($new_params['sessionPeriod']); ?>
+<a href="?<?= $build_query($new_params) ?>">不篩選</a>
+<?php foreach ($session_periods[$params['term']] as $pdata) { ?>
+<?php if ($pdata->sessionPeriod == $params['sessionPeriod'] and $pdata->sessionPeriod) { ?>
+    <strong>第<?= intval($pdata->sessionPeriod) ?>會期(<?= intval($pdata->count) ?>)</strong>
+    <?php } else { ?>
+        <?php $new_params['sessionPeriod'] = intval($pdata->sessionPeriod); ?>
+        <a href="?<?= $build_query($new_params) ?>">第<?= intval($pdata->sessionPeriod) ?>會期(<?= intval($pdata->count) ?>)</a>
+    <?php } ?>
+<?php } ?>
+<?php } ?>
 <p>委員會:
 <?php $new_params = $params; unset($new_params['committee_id']); ?>
 <a href="?<?= $build_query($new_params) ?>">不篩選</a>
