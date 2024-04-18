@@ -59,11 +59,16 @@ foreach ($meet_obj->meets as $meet) {
     }
 }
 // 取得ivod數量
-$url = sprintf("https://%s/ivod/?%s&aggs=meet_id&size=0", $domain, implode('&', $meet_params));
+$url = sprintf("https://%s/ivod/?%s&aggs=meet_id,date&size=0", $domain, implode('&', $meet_params));
 $ivod_count = json_decode(file_get_contents($url));
 $meet_ivod_count = [];
-foreach ($ivod_count->aggs->meet_id as $obj) {
-    $meet_ivod_count[$obj->value] = $obj->count;
+foreach ($ivod_count->aggs->{'meet_id,date'} as $obj) {
+    $meet_id = $obj->meet_id;
+    $date = date('Y-m-d', $obj->date / 1000);
+    if (!isset($meet_ivod_count[$meet_id])) {
+        $meet_ivod_count[$meet_id] = [];
+    }
+    $meet_ivod_count[$meet_id][$date] = $obj->count;
 }
 
 $meet_gazettes = [];
@@ -195,7 +200,9 @@ foreach ($gazette_obj->gazettes as $gazette) {
             <?php } ?>
         </td>
         <td>
-            <?= $meet_ivod_count[$meet->id] ?? '' ?>
+            <?php foreach ($meet_ivod_count[$meet->id] ?? [] as $date => $count) { ?>
+            <div><?= $date ?>: <?= $count ?></div>
+            <?php } ?>
         </td>
     </tr>
     <?php } ?>
