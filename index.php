@@ -48,8 +48,8 @@ if ($_GET['meet_type'] ?? false) {
     $params['meet_type'] = $_GET['meet_type'];
 }
 // 取得會議資料
-$url = "https://" . $domain . "/meet?" . $build_query($params);
-$meet_obj = json_decode(file_get_contents($url));
+$api_url = "https://" . $domain . "/meet?" . $build_query($params);
+$meet_obj = json_decode(file_get_contents($api_url));
 $meet_params = [];
 $gazette_params = [];
 foreach ($meet_obj->meets as $meet) {
@@ -69,6 +69,15 @@ foreach ($ivod_count->aggs->{'meet_id,date'} as $obj) {
         $meet_ivod_count[$meet_id] = [];
     }
     $meet_ivod_count[$meet_id][$date] = $obj->count;
+}
+
+// 取得質詢數量
+$url = sprintf("https://%s/interpellation/?%s&aggs=meet_id&size=0", $domain, implode('&', $meet_params));
+$interpellation_count = json_decode(file_get_contents($url));
+$meet_interpellation_count = [];
+foreach ($interpellation_count->aggs->meet_id as $obj) {
+    $meet_id = $obj->value;
+    $meet_interpellation_count[$meet_id] = $obj->count;
 }
 
 $meet_gazettes = [];
@@ -113,7 +122,6 @@ foreach ($gazette_obj->gazettes as $gazette) {
 <p>委員會:
 <?php $new_params = $params; unset($new_params['committee_id']); unset($new_params['meet_type']); ?>
 <a href="?<?= $build_query($new_params) ?>">不篩選</a>
-
 <?php if ($params['meet_type'] == '院會') { ?>
 <strong>院會</strong>
 <?php } else { ?>
@@ -131,6 +139,11 @@ foreach ($gazette_obj->gazettes as $gazette) {
     <?php } ?>
 <?php } ?>
 </p>
+
+<hr>
+API: <code><?= $api_url ?></code>
+<hr>
+
 <table class="table table-striped" border="1">
     <thead>
         <tr>
@@ -141,6 +154,7 @@ foreach ($gazette_obj->gazettes as $gazette) {
             <th>opendata發言紀錄</th>
             <th>公報紀錄</th>
             <th>iVod數量</th>
+            <th>書面質詢</th>
         </tr>
     </thead>
     <tbody>
@@ -203,6 +217,9 @@ foreach ($gazette_obj->gazettes as $gazette) {
             <?php foreach ($meet_ivod_count[$meet->id] ?? [] as $date => $count) { ?>
             <div><?= $date ?>: <?= $count ?></div>
             <?php } ?>
+        </td>
+        <td>
+            <?= $meet_interpellation_count[$meet->id] ?? '' ?>
         </td>
     </tr>
     <?php } ?>
