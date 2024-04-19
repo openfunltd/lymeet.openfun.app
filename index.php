@@ -122,13 +122,15 @@ foreach ($gazette_obj->gazettes as $gazette) {
 <p>委員會:
 <?php $new_params = $params; unset($new_params['committee_id']); unset($new_params['meet_type']); ?>
 <a href="?<?= $build_query($new_params) ?>">不篩選</a>
-<?php if ($params['meet_type'] == '院會') { ?>
-<strong>院會</strong>
-<?php } else { ?>
-<?php $new_params['meet_type'] = '院會'; ?>
+<?php foreach (['院會', '黨團協商'] as $meet_type) { ?>
+    <?php if ($params['meet_type'] == $meet_type) { ?>
+    <strong><?= htmlspecialchars($meet_type) ?></strong>
+    <?php } else { ?>
+    <?php $new_params['meet_type'] = $meet_type; ?>
+    <a href="?<?= $build_query($new_params) ?>"><?= htmlspecialchars($meet_type) ?></a>
+    <?php } ?>
 <?php } ?>
 
-<a href="?<?= $build_query($new_params) ?>">院會</a>
 <?php unset($new_params['meet_type']); ?>
 <?php foreach ($committees->committees as $committee) { ?>
     <?php if ($committee->comtCd == $params['committee_id']) { ?>
