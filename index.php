@@ -169,21 +169,23 @@ API: <code><?= $api_url ?></code>
         </td>
         <td>
             <?php foreach ($meet->meet_data ?? [] as $meet_data) { ?>
-            <a href="<?= htmlspecialchars($meet_data->ppg_url) ?>"><?= htmlspecialchars($meet_data->date) ?></a><br>
+            <a href="meet.php?id=<?= urlencode($meet->id) ?>#meetdata-<?= $meet_data->date ?>">
+                <?= htmlspecialchars($meet_data->date) ?>
+            </a><br>
             <?php } ?>
         </td>
         <td title="<?= htmlspecialchars(json_encode($meet->{'議事錄'}, JSON_UNESCAPED_UNICODE)) ?>">
             <?php if ($meet->{'議事錄'} ?? false) { ?>
-            <a href="<?= htmlspecialchars($meet->{'議事錄'}->ppg_url) ?>">議事錄</a> 
+            <a href="meet.php?id=<?= urlencode($meet->id) ?>#section-meet-note">議事錄</a> 
             <?php } ?>
         </td>
         <td>
             <?php if ($meet->{'發言紀錄'} ?? false) { ?>
-                <?php foreach ($meet->{'發言紀錄'} as $speak) { ?>
+                <?php foreach ($meet->{'發言紀錄'} as $idx => $speak) { ?>
                 <div title="<?= htmlspecialchars(json_encode($speak, JSON_UNESCAPED_UNICODE)) ?>">
-                    <span title="<?= htmlspecialchars(json_encode($speak, JSON_UNESCAPED_UNICODE)) ?>">
+                    <a href="meet.php?id=<?= $meet->id ?>#section-speech-<?= $idx ?>" title="<?= htmlspecialchars(json_encode($speak, JSON_UNESCAPED_UNICODE)) ?>">
                         <?= htmlspecialchars($speak->smeetingDate) ?>
-                    </span>:
+                    </a>:
                     <span title="<?= htmlspecialchars(implode(', ', $speak->legislatorNameList)) ?>">
                         <?= count($speak->legislatorNameList) ?> 人
                     </span>
@@ -198,9 +200,9 @@ API: <code><?= $api_url ?></code>
                 <?php $dates[$meet_gazettes[$gazette->gazette_id]->published_at] = 1; ?>
                 <?php if (count($meet->{'公報發言紀錄'}) > 4 and $idx > 1) { continue; } ?>
                 <div>
-                    <span title="<?= htmlspecialchars(json_encode($gazette, JSON_UNESCAPED_UNICODE)) ?>">
+                    <a href="meet.php?id=<?= $meet->id ?>#section-gazette-<?= $idx ?>" title="<?= htmlspecialchars(json_encode($gazette, JSON_UNESCAPED_UNICODE)) ?>">
                         <?= $gazette->gazette_id ?>:<?= $gazette->page_start ?>
-                    </span>：
+                    </a>：
                     <span title="<?= htmlspecialchars(implode(', ', $gazette->speakers)) ?>">
                         <?= count($gazette->speakers) ?> 人
                     </span>
@@ -210,16 +212,18 @@ API: <code><?= $api_url ?></code>
                 <?php if (count($meet->{'公報發言紀錄'}) > 4) { ?>
                 <div> ... 共 <?= count($meet->{'公報發言紀錄'}) ?> 章</div>
                 <?php } ?>
-                公報出版日：<?= implode('<br>', array_keys($dates)) ?>
+                公報出版日：<a href="meet.php?id=<?= $meet->id ?>#section-gazette"><?= implode('<br>', array_keys($dates)) ?></a>
             <?php } ?>
         </td>
         <td>
             <?php foreach ($meet_ivod_count[$meet->id] ?? [] as $date => $count) { ?>
-            <div><?= $date ?>: <?= $count ?></div>
+            <div><A href="meet.php?id=<?= $meet->id ?>#section-ivod"><?= $date ?></a>: <?= $count ?></div>
             <?php } ?>
         </td>
         <td>
-            <?= $meet_interpellation_count[$meet->id] ?? '' ?>
+            <?php if ($meet_interpellation_count[$meet->id] ?? false) { ?>
+            <a href="meet.php?id=<?= $meet->id ?>#section-interpellation"><?= $meet_interpellation_count[$meet->id] ?? '' ?></a>
+            <?php } ?>
         </td>
     </tr>
     <?php } ?>

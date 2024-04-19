@@ -26,11 +26,14 @@ $data = json_decode(file_get_contents($url));
     <?php foreach ($data->meet_data ?? [] as $meet) { ?>
     <tr>
         <td>
+            <h3 id="meetdata-<?= htmlspecialchars($meet->date) ?>">日期: <?= htmlspecialchars($meet->date) ?></h3>
             <ul>
                 <?php foreach ($meet as $k => $v) { ?>
                 <li>
                 <?= htmlspecialchars($k) ?>:
-                <?php if (is_scalar($v)) { ?>
+                <?php if ($k == 'ppg_url') { ?>
+                <a href="<?= htmlspecialchars($v) ?>"><?= htmlspecialchars($v) ?></a>
+                <?php } elseif (is_scalar($v)) { ?>
                 <?= htmlspecialchars($v) ?>
                 <?php } else { ?>
                 <?= json_encode($v, JSON_UNESCAPED_UNICODE) ?>
@@ -43,11 +46,37 @@ $data = json_decode(file_get_contents($url));
     <?php } ?>
 </table>
 <hr>
-<h2 id="section-speech">發言紀錄</h2>
+
+<h2 id="section-meet-note">議事錄</h2>
+<h4>委員會議事錄是從<a href="<?= $data->meet_data[0]->ppg_url ?>">會議紀錄</a>抓取，院會議事錄是從公報抓取</h4>
+<table border="1">
+    <tr>
+        <td>
+            <ul>
+            <?php foreach ($data->{'議事錄'} as $k => $v) { ?>
+                <li>
+                <?= htmlspecialchars($k) ?>:
+                <?php if (in_array($k, ['ppg_url', 'doc_file', 'txt_file', 'html_file'])) { ?>
+                <a href="<?= htmlspecialchars($v) ?>"><?= htmlspecialchars($v) ?></a>
+                <?php } elseif (is_scalar($v)) { ?>
+                <?= htmlspecialchars($v) ?>
+                <?php } else { ?>
+                <?= json_encode($v, JSON_UNESCAPED_UNICODE) ?>
+                <?php } ?>
+                </li>
+                <?php } ?>
+            </ul>
+        </td>
+    </tr>
+</table>
+
+
+<hr>
+<h2 id="section-speech">Open Data 發言紀錄</h2>
 <h4>以下資料來自 <a href="https://data.ly.gov.tw/getds.action?id=221">立法院資料開放平台:院會發言名單</a> 和 <a href="https://data.ly.gov.tw/getds.action?id=223">立法院資料開放平台:委員會登記發言名單</a></h4>
 <table border="1">
-    <?php foreach ($data->{'發言紀錄'} ?? [] as $meet) { ?>
-    <tr>
+    <?php foreach ($data->{'發言紀錄'} ?? [] as $idx => $meet) { ?>
+    <tr id="section-speech-<?= $idx ?>">
         <td>
             <ul>
                 <?php foreach ($meet as $k => $v) { ?>
@@ -69,8 +98,8 @@ $data = json_decode(file_get_contents($url));
 <h2 id="section-gazette">公報發言紀錄</h2>
 <h4>以下資料是從公報的「本期發言目錄」中利用文字處理抓取</h4>
 <table border="1">
-    <?php foreach ($data->{'公報發言紀錄'} ?? [] as $meet) { ?>
-    <tr>
+    <?php foreach ($data->{'公報發言紀錄'} ?? [] as $idx => $meet) { ?>
+    <tr id="section-gazette-<?= $idx ?>">
         <td>
             <ul>
                 <?php foreach ($meet as $k => $v) { ?>
