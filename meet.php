@@ -118,6 +118,13 @@ $data = json_decode(file_get_contents($url));
                 <?php } ?>
                 </li>
                 <?php } ?>
+                <li>
+                lysayit:
+                <?php foreach ($meet->html_files as $url) { ?>
+                <?php $doc_id = explode('/', $url)[4]; ?>
+                <a href="https://lysayit.openfun.app/?doc_id=<?= $doc_id ?>">lysayit:<?= $doc_id ?></a>
+                <?php } ?>
+                </li>
             </ul>
         </td>
     </tr>
