@@ -134,7 +134,7 @@ $data = json_decode(file_get_contents($url));
 <h2 id="section-ivod">iVOD記錄</h2>
 <h4>以下資料是從<a href="https://ivod.ly.gov.tw">立法院iVOD</a>抓取</h4>
 <?php
-$url = "https://{$domain}/meet/" . urlencode($id) . "/ivod";
+$url = "https://{$domain}/meet/" . urlencode($id) . "/ivod?limit=1000";
 $data = json_decode(file_get_contents($url));
 ?>
 <code>API: <?= htmlspecialchars($url) ?></code>
