@@ -65,3 +65,5 @@ views/{controller}/{action}.php；common/header、footer、meet-list；meet/vide
 - 回報段落有誤還沒做（本站沒有資料庫，要等 LYAPI 提供寫入端或改走 GitHub issue）。
 - 下載影片片段還沒做；可沿用 dataly-v2 的純前端 ffmpeg.wasm 做法（`dataly-v2/static/js/ivod/clip.js`）。
 - 法律頁、部會頁還沒做。
+- v2 的單筆 endpoint（`/meet/{id}`）遇到聯席會議代碼裡的逗號會失敗，`MeetHelper::getMeet()` 改用清單篩選繞過；清單與 `/speeches` 的篩選不受影響。
+- 黨團協商的紀錄不經公報目錄，meet 沒有 `公報發言紀錄` 欄位，狀態改看發言索引有沒有這場（`meetsWithSpeeches()`、會議頁的 `gazetteDocs()`）。
