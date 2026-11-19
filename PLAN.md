@@ -58,7 +58,8 @@ views/{controller}/{action}.php；common/header、footer、meet-list；meet/vide
 
 ### 已知限制（2026-11-19）
 
-- `/speeches` 在正式 v2 還沒部署前會 404，本機開發要自己跑 v2。
+- `/speeches` 在正式 v2 還沒部署前會 404：`LYAPI::speeches()` 會回 null，會議狀態少掉「公報定稿」、會議頁只有 AI 轉錄稿、搜尋與立委頁顯示「尚未開放」，其他功能照常。要看公報定稿就把 `config.inc.php` 的 `LYAPI_HOST` 指到本機跑的 v2。
+- LYAPI 連不上（connection refused 等）會直接丟例外並寫出主機名稱，不降級。
 - 公報頁碼只到文件層級（一份公報文件一個頁碼區間），引文寫「第 N 頁起」。
 - 公報版的影片時間大多是內插（`時間來源=interpolated`），畫面標「約」。
 - 黨團協商、公聽會的公報多半沒有時鐘戳記，公報版沒有影片時間；用 AI 轉錄稿那邊看。

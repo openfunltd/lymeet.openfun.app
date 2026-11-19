@@ -64,8 +64,9 @@ class LegislatorHelper
             'sort' => '日期>',
             'output_fields' => ['發言編號', '文件編號', '會議代碼', '會議種類', '日期', '發言者', '發言者身分', '內文', '發言時間', '影片', '順序'],
         ]);
-        $res = LYAPI::apiQuery("/speeches?{$qs}", "{$name} 的發言" . ($q !== '' ? "（{$q}）" : ''), 600);
+        $res = LYAPI::speeches($qs, "{$name} 的發言" . ($q !== '' ? "（{$q}）" : ''), 600);
         $out = new StdClass;
+        $out->unavailable = is_null($res);
         $out->total = intval($res->total ?? 0);
         $out->page = max(1, intval($page));
         $out->total_page = intval($res->total_page ?? 1);
@@ -77,7 +78,10 @@ class LegislatorHelper
     public static function meetCount($term, $name)
     {
         $qs = LYAPI::qs(['屆' => $term, '發言者' => $name, '區塊種類' => '發言', 'limit' => 0, 'agg' => '會議代碼']);
-        $res = LYAPI::apiQuery("/speeches?{$qs}", "{$name} 發言過的會議數", 3600);
+        $res = LYAPI::speeches($qs, "{$name} 發言過的會議數", 3600);
+        if (is_null($res)) {
+            return [null, null];
+        }
         $n = count($res->aggs[0]->buckets ?? []);
         return [$n >= 100 ? '100+' : $n, intval($res->total ?? 0)];
     }

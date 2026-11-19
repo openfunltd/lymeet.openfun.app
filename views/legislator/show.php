@@ -9,7 +9,7 @@
       <?php if (($l->是否離職 ?? '') === '是') { ?>　<span class="badge badge-novideo">已離職<?= !empty($l->離職日期) ? ' ' . $this->escape($l->離職日期) : '' ?></span><?php } ?>
     </p>
     <?php if (!empty($l->委員會)) { ?><p class="muted small"><?= $this->escape(implode('、', (array)$l->委員會)) ?></p><?php } ?>
-    <p class="person-stats">公報紀錄裡有 <?= number_format($this->speech_count) ?> 則發言，分布在 <?= $this->escape($this->meet_count) ?> 場會議<span class="muted">（只計算本站已有公報發言的會議）</span></p>
+    <?php if (!is_null($this->speech_count)) { ?><p class="person-stats">公報紀錄裡有 <?= number_format($this->speech_count) ?> 則發言，分布在 <?= $this->escape($this->meet_count) ?> 場會議<span class="muted">（只計算本站已有公報發言的會議）</span></p><?php } ?>
   </div>
 </section>
 
@@ -20,7 +20,9 @@
 </form>
 
 <h2><?= $this->q !== '' ? '提到「' . $this->escape($this->q) . '」的發言（' . number_format($r->total) . ' 則）' : '最近的發言' ?></h2>
-<?php if ($r->total == 0) { ?>
+<?php if (!empty($r->unavailable)) { ?>
+  <p class="empty">公報發言的查詢功能尚未開放（LYAPI 的 /speeches 端點還沒上線）。</p>
+<?php } elseif ($r->total == 0) { ?>
   <p class="empty"><?= $this->q !== '' ? '沒有找到提到這個詞的發言。' : '公報紀錄裡還沒有這位委員的發言。' ?></p>
 <?php } ?>
 <?php foreach ($r->groups as $g) { $meet = $g['meet']; ?>

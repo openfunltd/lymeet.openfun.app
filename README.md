@@ -5,7 +5,7 @@ lymeet.openfun.app：聚焦立法院會議逐字稿的網站。不用等公報�
 ## Quick start
 
 ```
-cp config.sample.inc.php config.inc.php   # 填 LYAPI_HOST 等
+cp config.sample.inc.php config.inc.php   # 預設直連 https://v2.ly.govapi.tw；要看公報定稿可把 LYAPI_HOST 指到本機的 v2
 php -S 0:8889 route.php
 ```
 

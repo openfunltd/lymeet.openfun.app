@@ -11,7 +11,9 @@
 </form>
 <p class="hint muted">搜尋範圍：第 <?= MeetHelper::defaultTerm() ?> 屆公報已出版會議的發言（院會、委員會、聯席會議、全院委員會、公聽會、黨團協商），依整句比對，俗稱請改用正式名稱。AI 轉錄稿暫不在搜尋範圍內。</p>
 
-<?php if ($this->result) { $r = $this->result; ?>
+<?php if ($this->result and !empty($this->result->unavailable)) { ?>
+<p class="empty">發言搜尋功能尚未開放（LYAPI 的 /speeches 端點還沒上線）。目前可以到<a href="/meets">會議</a>裡看各場的 AI 轉錄稿。</p>
+<?php } elseif ($this->result) { $r = $this->result; ?>
 <p class="result-count">找到 <?= number_format($r->total) ?> 則發言<?= $r->total > 0 ? "，第 {$r->page} / {$r->total_page} 頁" : '' ?></p>
 <?php if ($r->total == 0) { ?>
 <div class="empty">

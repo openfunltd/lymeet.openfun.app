@@ -25,8 +25,9 @@ class SearchHelper
             'sort' => '日期>',
             'output_fields' => ['發言編號', '文件編號', '會議代碼', '會議種類', '日期', '發言者', '發言者身分', '發言者職稱', '內文', '發言時間', '影片', '質詢輪次委員'],
         ]);
-        $res = LYAPI::apiQuery("/speeches?{$qs}", "搜尋發言「{$q}」第 {$page} 頁", 600);
+        $res = LYAPI::speeches($qs, "搜尋發言「{$q}」第 {$page} 頁", 600);
         $out = new StdClass;
+        $out->unavailable = is_null($res);
         $out->total = intval($res->total ?? 0);
         $out->page = $page;
         $out->total_page = intval($res->total_page ?? 1);

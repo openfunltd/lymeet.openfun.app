@@ -69,7 +69,7 @@ class MeetHelper
     public static function meetsWithSpeeches($from, $to)
     {
         $qs = LYAPI::qs(['日期:' => "{$from},{$to}", 'limit' => 0, 'agg' => '會議代碼']);
-        $res = LYAPI::apiQuery("/speeches?{$qs}", "{$from}～{$to} 已有公報發言的會議", 600);
+        $res = LYAPI::speeches($qs, "{$from}～{$to} 已有公報發言的會議", 600);
         $ids = [];
         foreach ($res->aggs[0]->buckets ?? [] as $b) {
             foreach ((array)$b->會議代碼 as $id) {
@@ -267,7 +267,7 @@ class MeetHelper
     public static function gazetteDocs($meet_id)
     {
         $qs = LYAPI::qs(['會議代碼' => $meet_id, 'limit' => 0, 'agg' => '文件編號']);
-        $res = LYAPI::apiQuery("/speeches?{$qs}", "會議 {$meet_id} 的公報文件清單", 1800);
+        $res = LYAPI::speeches($qs, "會議 {$meet_id} 的公報文件清單", 1800);
         $docs = [];
         foreach ($res->aggs[0]->buckets ?? [] as $b) {
             $docs[$b->文件編號] = intval($b->count);
@@ -289,7 +289,7 @@ class MeetHelper
             'sort' => '順序<',
             'output_fields' => ['發言編號', '文件編號', '公報編號', '日期', '順序', '區塊種類', '段落', '發言者', '發言者身分', '發言者職稱', '質詢輪次', '質詢輪次委員', '內文', '發言時間', '時間來源', '影片', '公報起始頁', '公報結束頁', '來源網址'],
         ]);
-        $r = LYAPI::apiQuery("/speeches?{$qs}", "公報文件 {$doc_id} 的發言", 1800);
+        $r = LYAPI::speeches($qs, "公報文件 {$doc_id} 的發言", 1800);
         return (array)($r->speeches ?? []);
     }
 

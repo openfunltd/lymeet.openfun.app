@@ -75,6 +75,7 @@ class LYAPI
         $res = curl_exec($curl);
         $delta = microtime(true) - $start;
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($curl);
         curl_close($curl);
         self::$log[] = [$full_url, $reason, sprintf('%.2fs', $delta)];
         if ($delta > 2) {
@@ -82,7 +83,13 @@ class LYAPI
                 'time' => date('c'), 'page' => $_SERVER['REQUEST_URI'] ?? '', 'url' => $full_url, 'delta' => $delta,
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
         }
+        if ($http_code == 0) {
+            throw new Exception("無法連線到 LYAPI " . getenv('LYAPI_SCHEME') . '://' . getenv('LYAPI_HOST') . "（{$curl_error}）。請檢查 config.inc.php 的 LYAPI_HOST；若指到本機的 v2，要先把 v2 跑起來。");
+        }
         if ($http_code == 404) {
+            if (strpos($url, '/speeches?') === 0) {
+                throw new LYAPI_Unavailable("LYAPI /speeches 尚未部署: {$url}");
+            }
             throw new LYAPI_NotFound("LYAPI 404: {$url}");
         }
         if ($http_code !== 200) {
@@ -97,8 +104,26 @@ class LYAPI
         }
         return $json;
     }
+
+    /**
+     * /speeches 的查詢；端點還沒部署（404）時回 null，讓頁面降級顯示而不是整頁出錯。
+     */
+    public static function speeches($qs, $reason, $cache = 600)
+    {
+        try {
+            return self::apiQuery("/speeches?{$qs}", $reason, $cache);
+        } catch (LYAPI_Unavailable $e) {
+            self::$log[] = [getenv('LYAPI_SCHEME') . '://' . getenv('LYAPI_HOST') . "/speeches?{$qs}", $reason, '尚未部署'];
+            return null;
+        }
+    }
 }
 
 class LYAPI_NotFound extends Exception
+{
+}
+
+/** 整個端點不存在（例如 /speeches 還沒部署到正式 v2），不是單筆找不到 */
+class LYAPI_Unavailable extends LYAPI_NotFound
 {
 }
