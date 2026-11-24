@@ -30,7 +30,7 @@ controllers/
   AboutController    /about 說明
 libraries/
   LYAPI              apiQuery()、qs()（v2 的 query string：篩選 key=value、區間 key:from,to、排序 sort=欄位< / >）
-  MeetHelper         會議清單＋狀態、單場、影片、公報發言（逐份文件抓）、段落目錄
+  MeetHelper         會議清單＋狀態、單場、影片、公報發言（逐份文件抓）、段落目錄（/meet_sections 的單元 → 段；沒有時退回 段落／質詢輪次）
   TranscriptHelper   AI 轉錄稿：whisperx 句子＋pyannote 語者 → 一段一位發言者；Clip 疊名字
   SearchHelper       發言搜尋（片語）、依會議分組、highlight
   LegislatorHelper   立委清單、個人頁的發言
@@ -42,7 +42,7 @@ views/{controller}/{action}.php；common/header、footer、meet-list；meet/vide
 | 頁面 | API |
 |---|---|
 | 會議清單 | `/meets?日期:from,to&output_fields=…`（含 `公報發言紀錄` 判斷公報有沒有出）＋ `/ivods?日期:from,to&影片種類=Full`（`支援功能` 含 `ai-transcript` 表示有 AI 逐字稿） |
-| 會議頁 | `/meet/{id}`、`/meet/{id}/ivods`；公報定稿 `/speeches?會議代碼=…&agg=文件編號` 再逐份 `/speeches?文件編號=…&limit=10000&sort=順序<`（一場可能上萬筆，ES 單次上限 1 萬，所以分文件抓）；AI 轉錄稿 `/ivod/{id}`（transcript.whisperx／pyannote） |
+| 會議頁 | `/meet/{id}`、`/meet/{id}/ivods`；公報定稿 `/speeches?會議代碼=…&agg=文件編號` 再逐份 `/speeches?文件編號=…&limit=10000&sort=順序<`（一場可能上萬筆，ES 單次上限 1 萬，所以分文件抓）；段落目錄 `/meet_sections?會議代碼=…&sort=單元序<&sort=段序<`（匯入端用 James 的切分器切出的單元 → 段，`發言起` 對到 `發言編號` 做錨點）；AI 轉錄稿 `/ivod/{id}`（transcript.whisperx／pyannote） |
 | 搜尋 | `/speeches?q="片語"&屆=11&區塊種類=發言&sort=日期>`（q 一定加引號，否則被拆成單字）；會議標題用 `/meets?會議代碼=a&會議代碼=b` 一次補 |
 | 立委 | `/legislators?屆=11`、`/legislator/{屆}/{姓名}`、`/speeches?發言者=…` |
 

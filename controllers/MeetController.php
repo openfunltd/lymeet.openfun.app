@@ -55,7 +55,16 @@ class MeetController extends MiniEngine_Controller
                     $doc_id = array_key_first($docs);
                 }
                 $blocks = MeetHelper::gazetteSpeeches($id, $doc_id);
-                $gazette = ['doc_id' => $doc_id, 'docs' => $docs, 'blocks' => $blocks, 'toc' => MeetHelper::gazetteToc($blocks)];
+                // 段落目錄以 LYAPI 的 meet_section（James 的切分器）為準；還沒切分的會議退回用 段落／質詢輪次 組
+                $sections = MeetHelper::meetSections($id);
+                $gazette = [
+                    'doc_id' => $doc_id,
+                    'docs' => $docs,
+                    'blocks' => $blocks,
+                    'toc' => $sections ? MeetHelper::sectionToc($sections, $id, $doc_id) : MeetHelper::legacyToc($blocks),
+                    'starts' => $sections ? MeetHelper::sectionStarts($sections, $doc_id) : [],
+                    'segmenter' => $sections ? ($sections[0]->切分器 ?? null) : null,
+                ];
             } else {
                 // 公報發言紀錄有了但索引還沒匯入（cron 每 3 小時）：退回 AI 轉錄稿
                 $view = 'ai';

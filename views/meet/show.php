@@ -87,8 +87,21 @@ $has_ai = count($this->ai_fulls) > 0;
   <aside class="toc">
     <h3>段落目錄</h3>
     <ol>
-    <?php foreach ($g['toc'] as $t) { ?>
-      <li class="toc-<?= $t['kind'] ?>"><a href="#<?= $this->escape($t['anchor']) ?>"><?= $this->escape($t['label']) ?></a></li>
+    <?php foreach ($g['toc'] as $u) { ?>
+      <li class="toc-unit">
+        <?php if ($u['label'] !== '') { ?><?php if ($u['href']) { ?><a href="<?= $this->escape($u['href']) ?>"><?= $this->escape($u['label']) ?></a><?php } else { ?><span class="off"><?= $this->escape($u['label']) ?></span><?php } ?><?php } ?>
+        <?php if ($u['items']) { ?>
+        <ol>
+        <?php foreach ($u['items'] as $t) { ?>
+          <li class="toc-item kind-<?= $this->escape($t['kind']) ?><?= $t['here'] ? '' : ' elsewhere' ?>">
+            <?php if ($t['href']) { ?><a href="<?= $this->escape($t['href']) ?>" title="<?= $this->escape($t['label']) ?>"><?= $this->escape($t['label']) ?><?php } else { ?><span class="off" title="這段對不到發言索引"><?= $this->escape($t['label']) ?><?php } ?>
+            <?php foreach ($t['tags'] as $tag) { ?><small class="toc-tag"><?= $this->escape($tag) ?></small><?php } ?>
+            <?= $t['href'] ? '</a>' : '</span>' ?>
+          </li>
+        <?php } ?>
+        </ol>
+        <?php } ?>
+      </li>
     <?php } ?>
     </ol>
   </aside>
@@ -101,11 +114,22 @@ $has_ai = count($this->ai_fulls) > 0;
       <?php } ?>
     </nav>
     <?php } ?>
-    <p class="transcript-note">立法院公報的正式紀錄<?= count($g['docs']) > 1 ? '，第 ' . (array_search($g['doc_id'], array_keys($g['docs'])) + 1) . ' 份文件' : '' ?>，<?= count($g['blocks']) ?> 則。有影片時間的段落點「播放」會跳到那一段。</p>
-    <?php $prev_speaker = null; $prev_section = null; ?>
+    <p class="transcript-note">立法院公報的正式紀錄<?= count($g['docs']) > 1 ? '，第 ' . (array_search($g['doc_id'], array_keys($g['docs'])) + 1) . ' 份文件' : '' ?>，<?= count($g['blocks']) ?> 則。有影片時間的段落點「播放」會跳到那一段。<?= $g['segmenter'] ? '段落依「' . $this->escape($g['segmenter']) . '」規則自動切分。' : '' ?></p>
+    <?php $prev_speaker = null; $prev_section = null; $prev_unit = null; ?>
     <?php foreach ($g['blocks'] as $b) { ?>
+      <?php if ($g['starts']) { ?>
+        <?php foreach ($g['starts'][intval($b->順序)] ?? [] as $st) { ?>
+          <?php if ($st['unit_no'] !== $prev_unit) { $prev_unit = $st['unit_no']; $prev_speaker = null; ?>
+          <h3 class="section-title"><?= $this->escape($st['unit_label']) ?></h3>
+          <?php } ?>
+          <?php if ($st['show_label']) { $prev_speaker = null; ?>
+          <h4 class="seg-title kind-<?= $this->escape($st['kind']) ?>"><?= $this->escape($st['label']) ?></h4>
+          <?php } ?>
+        <?php } ?>
+      <?php } else { ?>
       <?php $sec = trim((string)($b->段落 ?? '')); if ($sec !== '' and $sec !== $prev_section) { $prev_section = $sec; $prev_speaker = null; ?>
       <h3 class="section-title" id="<?= $this->escape($b->發言編號) ?>-sec"><?= $this->escape($sec) ?></h3>
+      <?php } ?>
       <?php } ?>
       <?php $kind = $b->區塊種類 ?? '發言'; $speaker = $b->發言者 ?? ''; ?>
       <div class="block kind-<?= $this->escape($kind) ?>" id="<?= $this->escape($b->發言編號) ?>">

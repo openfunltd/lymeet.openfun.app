@@ -95,13 +95,20 @@ button[type=submit]:hover { background: var(--brand-ink); }
 .toc { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; font-size: 14px; }
 .toc h3 { font-size: 14px; color: var(--muted); }
 .toc ol { list-style: none; margin: 0; padding: 0; }
-.toc li { padding: 3px 0; border-left: 2px solid var(--line); padding-left: 8px; }
-.toc li.toc-section { margin-top: 8px; border-left-color: var(--brand); }
-.toc li.toc-section a { color: var(--ink); font-weight: 500; }
-.toc li.toc-vote a { color: var(--warn); }
+.toc li.toc-unit { margin-top: 8px; border-left: 2px solid var(--brand); padding-left: 8px; }
+.toc li.toc-unit > a, .toc li.toc-unit > span { color: var(--ink); font-weight: 500; }
+.toc li.toc-item { padding: 2px 0 2px 10px; font-size: 13px; }
+.toc li.toc-item.kind-vote a { color: var(--warn); }
+.toc li.toc-item.kind-procedure a, .toc li.toc-item.kind-attachment a, .toc li.toc-item.kind-group a { color: var(--muted); }
+.toc li.toc-item.elsewhere a { font-style: italic; }
+.toc .off { color: var(--muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toc .toc-tag { color: var(--muted); font-size: 11px; margin-left: 4px; }
 .toc a { color: var(--body); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .transcript-note { font-size: 14px; color: var(--muted); }
 .section-title { font-size: 16px; color: var(--ink); margin: 28px 0 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.seg-title { font-size: 14px; color: var(--muted); margin: 20px 0 0; font-weight: 500; }
+.seg-title.kind-vote { color: var(--warn); }
+.seg-title.kind-case { color: var(--brand-ink); }
 .block { padding: 8px 0 8px; scroll-margin-top: 12px; }
 .block:target { background: var(--hl); border-radius: var(--r); padding: 8px; }
 .block .speaker { font-weight: 700; color: var(--ink); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-top: 10px; }

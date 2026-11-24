@@ -312,6 +312,129 @@ class MeetHelper
         return trim(($date ? substr($date, 5, 5) . ' ' : '') . mb_substr($label ?: $doc_id, 0, 30));
     }
 
+    /**
+     * 這場會議的段落（單元 → 段），來自 LYAPI 的 meet_section（匯入端用 James 的切分器切的；院會、委員會預算審查、公聽會）。
+     * 用清單端點而不用 /meet/{id}/meet_sections，因為聯席會議的代碼含逗號會讓單筆路由失敗。
+     * @return array of section objects，依單元序、段序；還沒切分或端點不在就回空陣列
+     */
+    public static function meetSections($meet_id)
+    {
+        $qs = LYAPI::qs([
+            '會議代碼' => $meet_id,
+            'limit' => 1000,
+            'sort' => ['單元序<', '段序<'],
+            'output_fields' => ['段落編號', '切分器', '單元序', '單元名稱', '單元種類', '單元標籤', '段序', '段類型', '段名', '標籤', '段種類', '表決', '文件編號', '發言起', '發言迄', '發言數', '發言者'],
+        ]);
+        try {
+            $res = LYAPI::apiQuery("/meet_sections?{$qs}", "會議 {$meet_id} 的段落目錄", 1800);
+        } catch (LYAPI_NotFound $e) {
+            return [];
+        }
+        return (array)($res->meet_sections ?? []);
+    }
+
+    /** 段的錨點：段起始那則發言的發言編號（{文件編號}-{順序 4 位}），對不到發言的段回 null */
+    public static function sectionAnchor($s)
+    {
+        if (!isset($s->發言起) or !isset($s->文件編號)) {
+            return null;
+        }
+        return sprintf('%s-%04d', $s->文件編號, intval($s->發言起));
+    }
+
+    /**
+     * 段落目錄（整場會議，跨文件）：[['label', 'href', 'items' => [['label', 'kind', 'href', 'tags', 'here']]]]。
+     * 目前看的文件內的段直接 #錨點，其他文件的段連到那份文件。
+     * kind：vote（有表決）或 meet_section 的段種類（person／case／stage／group／procedure／attachment）。
+     */
+    public static function sectionToc(array $sections, $meet_id, $doc_id)
+    {
+        $units = [];
+        foreach ($sections as $s) {
+            $no = intval($s->單元序);
+            $sec_no = intval($s->段序);
+            if (!isset($units[$no])) {
+                $units[$no] = ['label' => trim((string)$s->單元名稱), 'href' => null, 'items' => []];
+            }
+            $anchor = self::sectionAnchor($s);
+            $here = ($s->文件編號 ?? null) === $doc_id;
+            $href = null;
+            if ($anchor) {
+                $href = $here ? "#{$anchor}" : '/meet/' . rawurlencode($meet_id) . '?view=gazette&doc=' . rawurlencode($s->文件編號) . "#{$anchor}";
+            }
+            // 同一段跨好幾份文件（院會的逐款討論可以跨十份）時一段只列一次：目前文件裡有的那份優先，否則第一份
+            if (isset($units[$no]['items'][$sec_no])) {
+                if ($here and !$units[$no]['items'][$sec_no]['here'] and $href) {
+                    $units[$no]['items'][$sec_no]['href'] = $href;
+                    $units[$no]['items'][$sec_no]['here'] = true;
+                }
+                continue;
+            }
+            $units[$no]['items'][$sec_no] = [
+                'label' => trim((string)$s->段名),
+                'kind' => (!empty($s->表決) or in_array('表決', (array)($s->標籤 ?? []))) ? 'vote' : ($s->段種類 ?? 'stage'),
+                'href' => $href,
+                'tags' => (array)($s->標籤 ?? []),
+                'here' => $here,
+            ];
+            if (!$units[$no]['href'] and $href) {
+                $units[$no]['href'] = $href;
+            }
+        }
+        foreach ($units as &$u) {
+            $u['items'] = array_values($u['items']);
+            // 單元底下只有一段、段名又跟單元同名（例如「報告事項」），不必重複列
+            if (count($u['items']) == 1 and $u['items'][0]['label'] === $u['label']) {
+                $u['items'] = [];
+            }
+        }
+        return array_values($units);
+    }
+
+    /** 舊式目錄（沒有切分結果時用）：段落 → 單元，質詢輪次／表決 → 段，格式同 sectionToc() */
+    public static function legacyToc(array $blocks)
+    {
+        $units = [];
+        foreach (self::gazetteToc($blocks) as $t) {
+            if ($t['kind'] === 'section' or !$units) {
+                $units[] = ['label' => $t['kind'] === 'section' ? $t['label'] : '', 'href' => '#' . $t['anchor'], 'items' => []];
+                if ($t['kind'] === 'section') {
+                    continue;
+                }
+            }
+            $units[count($units) - 1]['items'][] = ['label' => $t['label'], 'kind' => $t['kind'], 'href' => '#' . $t['anchor'], 'tags' => [], 'here' => true];
+        }
+        return $units;
+    }
+
+    /**
+     * 內文要插標題的位置：順序 → 這則發言起頭的段（只看目前文件、對得到發言的段）。
+     * 每筆 ['unit_no', 'unit_label', 'label', 'kind', 'show_label']；show_label false 表示段名跟單元同名、不重複印。
+     */
+    public static function sectionStarts(array $sections, $doc_id)
+    {
+        $starts = [];
+        $count = [];
+        foreach ($sections as $s) {
+            $count[intval($s->單元序)] = ($count[intval($s->單元序)] ?? 0) + 1;
+        }
+        foreach ($sections as $s) {
+            if (($s->文件編號 ?? null) !== $doc_id or !isset($s->發言起)) {
+                continue;
+            }
+            $no = intval($s->單元序);
+            $label = trim((string)$s->段名);
+            $starts[intval($s->發言起)][] = [
+                'unit_no' => $no,
+                'unit_label' => trim((string)$s->單元名稱),
+                'label' => $label,
+                'kind' => (!empty($s->表決) or in_array('表決', (array)($s->標籤 ?? []))) ? 'vote' : ($s->段種類 ?? 'stage'),
+                'show_label' => !($count[$no] == 1 and $label === trim((string)$s->單元名稱)),
+            ];
+        }
+        return $starts;
+    }
+
     /** 公報發言的段落目錄：議程項目（段落）、質詢輪次、表決 */
     public static function gazetteToc(array $blocks)
     {
