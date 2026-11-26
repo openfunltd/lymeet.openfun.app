@@ -49,7 +49,7 @@ views/common/        header（頁首＋跑馬燈）、footer、meet-row（共用
 
 | 畫面 | API |
 |---|---|
-| 會議清單 | `/meets?日期:from,to`（含 `公報發言紀錄`、`三讀法案`、`會議屬性`）＋`/ivods?影片種類=Full`（`支援功能` 含 ai-transcript）＋`/speeches agg=會議代碼`（黨團協商不經公報目錄）＋`/meet_sections agg=會議代碼,切分器`（審預算＝切分器「委員會預算審查」）、`標籤=表決 agg=會議代碼`（表決 N 次） |
+| 會議清單 | `/meets?日期:from,to`（含 `公報發言紀錄`、`三讀法案`、`會議屬性`、`資料狀態`）。`資料狀態` 是 LYAPI 匯入端（ly.govapi.tw `imports/meet/enrich-signals.php`）算好的訊號：完整影片、有AI逐字稿、有公報發言、切分器、表決段數、三讀段數；有它就不必再查 ivod／speech／meet_section。沒有 `資料狀態` 的會議才退回老方法：`/ivods?影片種類=Full`、`/speeches agg=會議代碼`、`/meet_sections agg=會議代碼,切分器` 與 `會議代碼,標籤` |
 | 會議頁 | `/meet/{id}`、`/ivods?會議資料.會議代碼=`；公報定稿 `/speeches?會議代碼=…&agg=文件編號` 再逐份 `/speeches?文件編號=…&limit=10000`（一次只顯示一份文件，目錄跨文件連結）；段落 `/meet_sections?會議代碼=`（單元依日期排）；AI 轉錄稿 `/ivod/{id}`；議案 `/bills?議案編號=`（同一案的下一步） |
 | 搜尋 | `/meets?q="…"`（會議標題、事由、附件標題；依 `:highlight` 欄位分到事由／文件分頁）、`/speeches?q="…"&區塊種類=發言`、`/laws?q=`、立委名單比對 |
 | 立委 | `/legislators?屆=N`（8–11）、`/speeches?發言者=`、`/meet_sections?q="X委員Y"&段種類=person`（他的那一輪）、`/speeches agg=發言者&agg_size=300`（排序用的發言段數） |
@@ -57,7 +57,7 @@ views/common/        header（頁首＋跑馬燈）、footer、meet-row（共用
 
 ### 會議狀態（`MeetHelper::status()`，不靠 API 的狀態欄位）
 
-公報定稿（meet 有 `公報發言紀錄` 或發言索引有這場）＞ AI 轉錄稿（Full 的 `支援功能` 含 ai-transcript）＞ AI 轉錄稿產生中（有 Full 沒逐字稿，或今天已到開始時間）＞ 已排定（還沒開會或結束 3 天內）＞ 沒有影片。
+公報定稿（meet 有 `公報發言紀錄`，或 `資料狀態.有公報發言`）＞ AI 轉錄稿（`資料狀態.有AI逐字稿`，或 Full 的 `支援功能` 含 ai-transcript）＞ AI 轉錄稿產生中（有 Full 沒逐字稿，或今天已到開始時間）＞ 已排定（還沒開會或結束 3 天內）＞ 沒有影片。
 「直播中」目前用「今天、已到開始時間、還沒到結束時間、還沒有 Full」近似，IVOD 沒有直播狀態欄位。
 
 ## 設計和資料對不上的地方（等人決定）

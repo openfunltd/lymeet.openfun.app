@@ -21,9 +21,9 @@ class MeetHelper
     /** 這幾種會議 James 還沒細分：沒有段落目錄 */
     const NO_SEG_TYPES = ['考察', '程序委員會', '全院委員談話會'];
 
-    const MEET_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '公報發言紀錄', '議事網資料', '三讀法案'];
+    const MEET_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '公報發言紀錄', '議事網資料', '三讀法案', '資料狀態'];
     /** 列表用：不帶 議事網資料（院會一場的關係文書有上百件議案，很肥；列表只要標題、事由、狀態） */
-    const LIST_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '公報發言紀錄', '三讀法案'];
+    const LIST_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '公報發言紀錄', '三讀法案', '資料狀態'];
 
     public static function defaultTerm()
     {
@@ -62,18 +62,29 @@ class MeetHelper
             'output_fields' => self::LIST_FIELDS,
         ]);
         $res = LYAPI::apiQuery("/meets?{$qs}", "{$from}～{$to} 的會議", 600);
-        $fulls = self::fullVideosByMeet($from, $to);
-        $with_speeches = self::meetsWithSpeeches($from, $to);
         $meets = [];
+        $need = [];
         foreach ($res->meets ?? [] as $m) {
-            $o = self::decorate($m, $fulls[$m->會議代碼] ?? []);
-            if ($o->status !== 'gazette' and isset($with_speeches[$o->id])) {
-                // 黨團協商的紀錄不經公報目錄（沒有 公報發言紀錄 欄位），但發言索引有
-                [$o->status, $o->status_label] = ['gazette', self::STATUS_LABEL['gazette']];
-            }
+            $o = self::decorate($m);
             $meets[] = $o;
+            if (!$o->signals) {
+                $need[] = $o;
+            }
         }
-        self::attachSections($meets, $from, $to);
+        // 資料狀態（匯入端算好的訊號）還沒有的會議，退回老方法：查影片、公報發言、段落統計
+        if ($need) {
+            $fulls = self::fullVideosByMeet($from, $to);
+            $with_speeches = self::meetsWithSpeeches($from, $to);
+            foreach ($need as $o) {
+                $o->fulls = $fulls[$o->id] ?? [];
+                [$o->status, $o->status_label, $o->is_live] = self::status($o, $o->fulls);
+                if ($o->status !== 'gazette' and isset($with_speeches[$o->id])) {
+                    // 黨團協商的紀錄不經公報目錄（沒有 公報發言紀錄 欄位），但發言索引有
+                    [$o->status, $o->status_label] = ['gazette', self::STATUS_LABEL['gazette']];
+                }
+            }
+            self::attachSections($need, $from, $to);
+        }
         return $meets;
     }
 
@@ -92,6 +103,8 @@ class MeetHelper
     /** 同上，但給一組會議代碼（搜尋結果、法律頁、立委頁的列表用） */
     public static function attachSectionsByIds(array $meets)
     {
+        // 有 資料狀態 的會議在 decorate() 就算好了，不必再查
+        $meets = array_values(array_filter($meets, fn($m) => empty($m->status_attached)));
         $ids = array_values(array_unique(array_map(fn($m) => $m->id, $meets)));
         if (!$ids) {
             return;
@@ -293,6 +306,8 @@ class MeetHelper
         }
         $o->gazette_records = (array)($m->公報發言紀錄 ?? []);
         $o->third_reading = (array)($m->三讀法案 ?? []);
+        // 匯入端算好的狀態訊號（enrich-signals.php）：有就不必再查 ivod、speech、meet_section
+        $o->signals = isset($m->資料狀態->更新時間) ? $m->資料狀態 : null;
         $o->bills = [];
         $o->docs = [];
         $o->ivod_links = [];
@@ -320,6 +335,18 @@ class MeetHelper
         $o->segmenter = null;
         $o->segmented = false;
         $o->marks = [];
+        if ($o->signals) {
+            $segs = (array)($o->signals->切分器 ?? []);
+            $o->segmenter = in_array('委員會預算審查', $segs) ? '委員會預算審查' : ($segs[0] ?? null);
+            $o->segmented = count($segs) > 0;
+            if ($o->type === '院會') {
+                $o->marks = [
+                    '三讀' => count($o->third_reading) ?: intval($o->signals->三讀段數 ?? 0),
+                    '表決' => intval($o->signals->表決段數 ?? 0),
+                ];
+            }
+            $o->status_attached = true;
+        }
         $o->kinds = self::kindsOf($o);
         $o->raw = $m;
         return $o;
@@ -351,8 +378,12 @@ class MeetHelper
      */
     public static function status($o, array $fulls)
     {
-        if ($o->gazette_records) {
+        $sig = $o->signals ?? null;
+        if ($o->gazette_records or ($sig and !empty($sig->有公報發言))) {
             return ['gazette', self::STATUS_LABEL['gazette'], false];
+        }
+        if ($sig and !empty($sig->有AI逐字稿)) {
+            return ['ai', self::STATUS_LABEL['ai'], false];
         }
         foreach ($fulls as $f) {
             if (in_array('ai-transcript', (array)($f->支援功能 ?? []))) {
@@ -361,7 +392,7 @@ class MeetHelper
         }
         $now = date('Y-m-d\TH:i:s');
         $today = date('Y-m-d');
-        if ($fulls) {
+        if ($fulls or ($sig and count((array)($sig->完整影片 ?? [])))) {
             return ['processing', self::STATUS_LABEL['processing'], false];
         }
         if (in_array($today, $o->dates)) {
@@ -425,6 +456,7 @@ class MeetHelper
     /** 補上影片、公報發言、段落統計算出的狀態（decorate() 之後、沒有日期區間時用） */
     public static function attachStatus(array $meets)
     {
+        $meets = array_filter($meets, fn($m) => empty($m->status_attached));
         if (!$meets) {
             return;
         }
