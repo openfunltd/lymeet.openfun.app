@@ -1,28 +1,45 @@
 <?= $this->partial('common/header') ?>
-<h1>會議</h1>
-<form class="filter-bar" method="get" action="/meets">
-  <label>從 <input type="date" name="from" value="<?= $this->escape($this->from) ?>"></label>
-  <label>到 <input type="date" name="to" value="<?= $this->escape($this->to) ?>"></label>
-  <span class="type-filter">
-  <?php foreach (MeetHelper::TYPE_ORDER as $t) { ?>
-    <label class="chip-check"><input type="checkbox" name="type[]" value="<?= $t ?>" <?= in_array($t, $this->types) ? 'checked' : '' ?>> <?= $t ?></label>
-  <?php } ?>
-  </span>
-  <button type="submit">更新</button>
-</form>
-<p class="pager">
-  <a href="/meets?from=<?= $this->prev['from'] ?>&to=<?= $this->prev['to'] ?><?= $this->types ? '&' . http_build_query(['type' => $this->types]) : '' ?>">← 更早一週</a>
-  <span class="muted"><?= MeetHelper::fmtDate($this->from) ?> ～ <?= MeetHelper::fmtDate($this->to) ?></span>
-  <?php if ($this->to < date('Y-m-d', strtotime('+14 days'))) { ?>
-  <a href="/meets?from=<?= $this->next['from'] ?>&to=<?= $this->next['to'] ?><?= $this->types ? '&' . http_build_query(['type' => $this->types]) : '' ?>">下一週 →</a>
-  <?php } ?>
-</p>
-<?php if (!$this->days) { ?>
-  <p class="empty">這段期間沒有符合的會議。</p>
+<?php
+$sec = function($id, $title, $sub, $days, $limit = 0) {
+    $n = array_sum(array_map('count', $days));
+    $out = '<section><div class="sechead"><h2>' . $title . '</h2><span class="muted small">' . $sub . '</span></div><div class="panel">';
+    if (!$n) {
+        return $out . '<p class="muted">沒有會議。</p></div></section>';
+    }
+    $out .= '<div class="list" data-list="' . $id . '" data-group="mt" data-limit="' . ($limit ?: 9999) . '">';
+    $i = 0;
+    foreach ($days as $d => $ms) {
+        foreach ($ms as $m) {
+            $html = $this->partial('common/meet-row', ['meet' => $m, 'date' => $d]);
+            if ($limit and $i >= $limit) {
+                $html = preg_replace('#^<div class="item"#', '<div hidden class="item"', $html, 1);
+            }
+            $out .= $html;
+            $i ++;
+        }
+    }
+    $out .= '</div>';
+    if ($limit and $n > $limit) {
+        $out .= '<button type="button" class="linkish more" data-more="' . $id . '">顯示全部 ' . $n . ' 場</button>';
+    }
+    return $out . '</div></section>';
+};
+?>
+<?php if ($this->older_only) { ?>
+<div class="stack">
+  <div class="stack" style="gap:6px"><h1>更早的會議</h1><p class="muted"><?= SiteHelper::fmtFull($this->older_from) ?> 到 <?= SiteHelper::fmtFull($this->older_to) ?>，依日期由新到舊。</p></div>
+  <?= $sec('older', '更早的會議', '依日期由新到舊', $this->older_days) ?>
+  <p class="row"><a class="linkish" href="/meets?before=<?= $this->escape($this->prev_before) ?>">再往前 30 天 →</a><a class="linkish" href="/meets">回到最近的會議</a></p>
+</div>
+<?php } else { ?>
+<div class="stack">
+   <div class="stack" style="gap:6px"><h1>會議</h1><p class="muted">今天、最近和已排定的會議，也可以往前找更早的會議。整場會議轉錄完成後，AI 轉錄稿會一次放上來。公報出版後，會自動換成正式紀錄。</p></div>
+   <div class="panel topfilter"><?= $this->partial('common/filter-bar', ['id' => 'mt', 'meets' => $this->all_meets]) ?></div>
+   <?= $sec('mt-today', '今天', SiteHelper::fmtFull($this->today), $this->today_meets ? [$this->today => $this->today_meets] : []) ?>
+   <?= $sec('mt-recent', '最近 3 天', '可以看 AI 轉錄稿', $this->recent_days) ?>
+   <?= $sec('mt-next', '已排定', '未來 7 天', $this->next_days) ?>
+   <?= $sec('older', '更早的會議', '依日期由新到舊', $this->older_days, 15) ?>
+   <p><a class="linkish" href="/meets?before=<?= $this->escape($this->prev_before) ?>">再往前 30 天 →</a></p>
+</div>
 <?php } ?>
-<?php foreach ($this->days as $day => $meets) { ?>
-<h3 class="day-title"><?= MeetHelper::fmtDate($day) ?><?= $day == date('Y-m-d') ? '　今天' : '' ?></h3>
-<?= $this->partial('common/meet-list', ['meets' => $meets]) ?>
-<?php } ?>
-<p class="legend muted">狀態：公報定稿＝立法院公報已出版的正式紀錄；AI 轉錄稿＝由會議影片自動轉出，可能有錯；產生中＝影片已上傳、整場轉錄完成後一次放上；已排定＝還沒開會或影片還沒上傳；沒有影片＝立法院沒有這場會議的影片。</p>
 <?= $this->partial('common/footer') ?>

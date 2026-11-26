@@ -1,52 +1,53 @@
-<?php $l = $this->legislator; $r = $this->result; ?>
+<?php $info = $this->info; $name = $this->name; $r = $this->result; $rounds = $this->rounds; ?>
 <?= $this->partial('common/header') ?>
-<section class="person-head">
-  <?php if (!empty($l->照片位址)) { ?><img class="person-photo" src="<?= $this->escape(str_replace('http://', 'https://', $l->照片位址)) ?>" alt=""><?php } ?>
-  <div>
-    <h1><?= $this->escape($l->委員姓名) ?> <span class="muted">委員</span></h1>
-    <p class="person-meta">
-      <?= $this->escape($l->黨籍 ?: '無黨籍') ?>　<?= $this->escape($l->選區名稱 ?? '') ?>　第 <?= $this->term ?> 屆
-      <?php if (($l->是否離職 ?? '') === '是') { ?>　<span class="badge badge-novideo">已離職<?= !empty($l->離職日期) ? ' ' . $this->escape($l->離職日期) : '' ?></span><?php } ?>
+<div class="stack">
+   <div class="meethead"><span class="muted small">立委</span><h1><?= $this->escape($name) ?></h1>
+     <dl class="profile">
+      <div><dt>黨籍</dt><dd><?= SiteHelper::partyChip($info['party']) ?></dd></div>
+      <div><dt>選區</dt><dd><?= $this->escape($info['area']) ?></dd></div>
+      <div><dt>委員會</dt><dd><?= $info['committees'] ? $this->escape(implode('、', $info['committees'])) : '—' ?></dd></div>
+      <div><dt>擔任立委</dt><dd><?php $first = true; foreach ($info['terms'] as $t => $ti) { ?><?= $first ? '' : '<br>' ?>第 <?= $t ?> 屆・<?= SiteHelper::partyChip($ti['party']) ?><?= $ti['left'] ? '（' . $this->escape($ti['leftDate']) . ' 離職）' : '' ?><?php $first = false; } ?></dd></div>
+     </dl><p class="muted small">資料來源：立法院開放資料。黨籍、選區、委員會是最近一屆的資料，委員會為該屆最後一個會期；黨籍是各屆屆末的黨籍。</p>
+     <div class="meta"><span>在 <?= $this->escape($this->meet_count ?? '—') ?> 場會議發言（只計算本站已有逐字稿或影片段落的會議）</span></div></div>
+   <section><div class="sechead"><h2>有發言的會議</h2><form class="filters" style="margin:0" method="get" action="/legislator/<?= rawurlencode($name) ?>"><input id="pf" name="q" type="search" value="<?= $this->escape($this->q) ?>" placeholder="在發言裡找議題" aria-label="在發言裡找議題" style="border:1px solid var(--line-strong);border-radius:4px;padding:4px 8px;background:var(--surface);color:var(--ink)">
+      <label class="muted">時間 <select id="pd" name="days" onchange="this.form.submit()"><option value="">不限</option><?php foreach ([3, 7, 30, 90] as $d) { ?><option value="<?= $d ?>" <?= $this->days == $d ? 'selected' : '' ?>>最近 <?= $d ?> 天</option><?php } ?></select></label><button class="act" type="submit">找</button></form></div>
+    <div class="panel"><div class="list" id="plist">
+    <?php if ($r->unavailable) { ?><p class="muted">發言資料暫時讀不到。</p><?php } elseif (!$r->groups) { ?><p class="muted" id="pempty"><?= ($this->q !== '' or $this->days) ? '這段期間沒有符合的發言。請放寬條件。' : '還沒有發言紀錄。' ?></p><?php } ?>
+    <?php foreach ($r->groups as $g) { $m = $g['meet']; if (!$m) { continue; } $hits = $g['hits']; $first = $hits[0];
+      $best = $first; foreach ($hits as $h) { if (mb_strlen($h->內文 ?? '') > mb_strlen($best->內文 ?? '')) { $best = $h; } }
+      $seg = MeetHelper::isSeg($m);
+      $own = $rounds[$m->id] ?? [];
+      $extra = '<div class="agenda">發言 ' . count($hits) . ' 段' . ($r->total > count($hits) ? '（這一頁）' : '') . '</div>';
+      $extra .= '<div class="quote">' . $this->escape(SiteHelper::snippet($best->內文 ?? '', '', 50)) . '</div>';
+      if (!$seg) {
+          $extra .= '<div class="small muted">這類會議還沒有分段，以下逐句列出</div>';
+      } elseif ($own) {
+          $extra .= '<div class="rounds"><div class="small muted">他的那一輪（' . count($own) . '）</div>';
+          foreach ($own as $x) {
+              $href = '/meet/' . rawurlencode($m->id) . ($x['doc'] ? '?doc=' . rawurlencode($x['doc']) : '') . ($x['anchor'] ? '#' . $x['anchor'] : '');
+              $extra .= '<div class="quote"><a class="linkish" href="' . $this->escape($href) . '">' . $this->escape($x['unit']) . ' › ' . $this->escape(SiteHelper::parseSpeaker($x['label'])[0] ?: $x['label']) . '</a></div>';
+          }
+          $extra .= '</div>';
+      }
+      if (count($hits) > 1) {
+          $extra .= '<details class="more-speech"><summary class="small">看這場的 ' . count($hits) . ' 段發言</summary>';
+          foreach ($hits as $h) {
+              $extra .= '<div class="quote"><a class="linkish small" href="/meet/' . rawurlencode($m->id) . '?doc=' . rawurlencode($h->文件編號) . '#' . $this->escape($h->發言編號) . '">' . ($this->q !== '' ? SearchHelper::highlightHtml($h, 1) : $this->escape(SiteHelper::snippet($h->內文 ?? '', '', 36))) . '</a></div>';
+          }
+          $extra .= '</details>';
+      }
+    ?>
+      <?= $this->partial('common/meet-row', ['meet' => $m, 'q' => $this->q, 'snippet' => $extra, 'agenda' => '', 'focus' => $first->發言編號 ?? '']) ?>
+    <?php } ?>
+    </div>
+    <?php if ($r->total_page > 1) { ?>
+    <p class="row small" style="margin-top:12px">
+      <?php $base = '/legislator/' . rawurlencode($name) . '?q=' . rawurlencode($this->q) . '&days=' . intval($this->days) . '&page='; ?>
+      <?php if ($r->page > 1) { ?><a class="linkish" href="<?= $base . ($r->page - 1) ?>">← 上一頁</a><?php } ?>
+      <span class="muted">第 <?= $r->page ?> 頁，共 <?= $r->total_page ?> 頁</span>
+      <?php if ($r->page < $r->total_page) { ?><a class="linkish" href="<?= $base . ($r->page + 1) ?>">下一頁 →</a><?php } ?>
     </p>
-    <?php if (!empty($l->委員會)) { ?><p class="muted small"><?= $this->escape(implode('、', (array)$l->委員會)) ?></p><?php } ?>
-    <?php if (!is_null($this->speech_count)) { ?><p class="person-stats">公報紀錄裡有 <?= number_format($this->speech_count) ?> 則發言，分布在 <?= $this->escape($this->meet_count) ?> 場會議<span class="muted">（只計算本站已有公報發言的會議）</span></p><?php } ?>
-  </div>
-</section>
-
-<form class="search-form inline" method="get" action="/legislator/<?= rawurlencode($l->委員姓名) ?>">
-  <input type="search" name="q" value="<?= $this->escape($this->q) ?>" placeholder="在這位委員的發言裡找議題，例如：托嬰" aria-label="在發言裡找">
-  <button type="submit">找</button>
-  <?php if ($this->q !== '') { ?><a class="muted" href="/legislator/<?= rawurlencode($l->委員姓名) ?>">清除</a><?php } ?>
-</form>
-
-<h2><?= $this->q !== '' ? '提到「' . $this->escape($this->q) . '」的發言（' . number_format($r->total) . ' 則）' : '最近的發言' ?></h2>
-<?php if (!empty($r->unavailable)) { ?>
-  <p class="empty">公報發言的查詢功能尚未開放（LYAPI 的 /speeches 端點還沒上線）。</p>
-<?php } elseif ($r->total == 0) { ?>
-  <p class="empty"><?= $this->q !== '' ? '沒有找到提到這個詞的發言。' : '公報紀錄裡還沒有這位委員的發言。' ?></p>
-<?php } ?>
-<?php foreach ($r->groups as $g) { $meet = $g['meet']; ?>
-<section class="result-group">
-  <h3>
-    <a href="/meet/<?= rawurlencode($g['meet_id']) ?>"><?= $this->escape($meet ? $meet->title : $g['meet_id']) ?></a>
-    <span class="muted"><?= $meet ? $this->escape(MeetHelper::fmtDates($meet->dates)) : '' ?><?= $meet && $meet->committees ? '　' . $this->escape(implode('、', $meet->committees)) : '' ?></span>
-  </h3>
-  <ul class="hit-list">
-  <?php foreach ($g['hits'] as $h) { ?>
-    <li class="hit">
-      <p class="hit-text"><?= SearchHelper::highlightHtml($h) ?></p>
-      <a class="hit-link" href="/meet/<?= rawurlencode($g['meet_id']) ?>?view=gazette&doc=<?= rawurlencode($h->文件編號 ?? '') ?>#<?= $this->escape($h->發言編號) ?>">看這段<?= !empty($h->影片->IVOD_ID) ? '、播放影片' : '' ?> →</a>
-    </li>
-  <?php } ?>
-  </ul>
-</section>
-<?php } ?>
-<?php if ($r->total_page > 1) { ?>
-<p class="pager">
-  <?php $base = '/legislator/' . rawurlencode($l->委員姓名) . '?' . http_build_query(['q' => $this->q, 'term' => $this->term]); ?>
-  <?php if ($r->page > 1) { ?><a href="<?= $base ?>&page=<?= $r->page - 1 ?>">← 上一頁</a><?php } ?>
-  <span class="muted">第 <?= $r->page ?> / <?= $r->total_page ?> 頁</span>
-  <?php if ($r->page < $r->total_page) { ?><a href="<?= $base ?>&page=<?= $r->page + 1 ?>">下一頁 →</a><?php } ?>
-</p>
-<?php } ?>
+    <?php } ?>
+    </div></section>
+</div>
 <?= $this->partial('common/footer') ?>

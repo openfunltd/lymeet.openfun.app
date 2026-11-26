@@ -125,7 +125,16 @@ class TranscriptHelper
         if ($cur) {
             $blocks[] = $cur;
         }
-        return ['blocks' => $blocks, 'toc' => $toc, 'sentences' => count($sentences), 'named' => $named, 'names' => $names];
+        // 逐字稿涵蓋範圍：影片有一段沒有轉錄（例：逐字稿從 2 小時 30 分才開始、影片 9:43 結束但逐字稿到 8:46）
+        $coverage = null;
+        if ($sentences) {
+            $first = $sentences[0]['start'];
+            $last = end($sentences)['end'];
+            $gap_head = $first > 300;
+            $gap_tail = $duration > 0 and ($duration - $last) > 300;
+            $coverage = ['from' => $first, 'to' => $last, 'duration' => $duration, 'gap' => ($gap_head or $gap_tail)];
+        }
+        return ['blocks' => $blocks, 'toc' => $toc, 'sentences' => count($sentences), 'named' => $named, 'names' => $names, 'coverage' => $coverage];
     }
 
     /** 「林委員德福」→「林德福」、「卓院長榮泰」→「卓榮泰」；其他原樣 */

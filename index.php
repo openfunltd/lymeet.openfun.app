@@ -18,11 +18,29 @@ MiniEngine::dispatch(function($uri) {
     if (preg_match('#^/legislator/([^/]+)$#u', $path, $m)) {
         return ['legislator', 'show', [$m[1]]];
     }
+    if ($path == '/laws') {
+        return ['law', 'index'];
+    }
+    if (preg_match('#^/law/([^/]+)$#u', $path, $m)) {
+        return ['law', 'show', [$m[1]]];
+    }
+    if ($path == '/depts') {
+        return ['dept', 'index'];
+    }
+    if (preg_match('#^/dept/([^/]+)$#u', $path, $m)) {
+        return ['dept', 'show', [$m[1]]];
+    }
     if ($path == '/search') {
         return ['search', 'index'];
     }
+    if ($path == '/learn') {
+        return ['learn', 'index'];
+    }
     if ($path == '/about') {
-        return ['about', 'index'];
+        return ['learn', 'about'];
+    }
+    if ($path == '/about-us') {
+        return ['learn', 'team'];
     }
     return null;
 });
