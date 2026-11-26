@@ -85,7 +85,7 @@ class SearchHelper
         $reason = [];
         $docs = [];
         $qs = LYAPI::qs(['q' => '"' . $q . '"', 'limit' => 200, 'sort' => '日期>', 'output_fields' => array_merge(MeetHelper::MEET_FIELDS, ['議事網資料'])]);
-        $res = LYAPI::apiQuery("/meets?{$qs}", "搜尋會議事由與會議文件「{$q}」", 600);
+        $res = LYAPI::apiQuery("/meets?{$qs}", "搜尋會議事由與會議文件「{$q}」");
         foreach ($res->meets ?? [] as $m) {
             $hit_reason = false;
             $hit_doc = false;
@@ -126,7 +126,7 @@ class SearchHelper
 
         // 發言：場數用 agg（最多 100 個 bucket）
         $qs = LYAPI::qs(['q' => '"' . $q . '"', '區塊種類' => '發言', 'limit' => 0, 'agg' => '會議代碼']);
-        $agg = LYAPI::speeches($qs, "發言提到「{$q}」的會議數", 600);
+        $agg = LYAPI::speeches($qs, "發言提到「{$q}」的會議數");
         $r->unavailable = is_null($agg);
         $speech_meets = count($agg->aggs[0]->buckets ?? []);
         $r->counts['speech'] = $speech_meets;
@@ -153,7 +153,7 @@ class SearchHelper
                 'sort' => '日期>',
                 'output_fields' => ['發言編號', '文件編號', '會議代碼', '會議種類', '日期', '發言者', '發言者身分', '發言者職稱', '內文', '發言時間', '影片', '段落', '質詢輪次委員'],
             ]);
-            $res = LYAPI::speeches($qs, "搜尋發言「{$q}」第 {$r->page} 頁", 600);
+            $res = LYAPI::speeches($qs, "搜尋發言「{$q}」第 {$r->page} 頁");
             $r->total_page = intval($res->total_page ?? 1);
             $r->groups = self::groupByMeet((array)($res->speeches ?? []));
         } elseif ($tab === 'reason') {

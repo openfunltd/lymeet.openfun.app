@@ -142,7 +142,7 @@ class MeetHelper
     {
         $qs = LYAPI::qs(array_merge($filter, ['limit' => 0, 'agg' => $agg]));
         try {
-            $res = LYAPI::apiQuery("/meet_sections?{$qs}", '段落目錄的統計（' . $agg . '）', 1800);
+            $res = LYAPI::apiQuery("/meet_sections?{$qs}", '段落目錄的統計（' . $agg . '）', isset($filter['日期:']) ? 1800 : null);
         } catch (LYAPI_NotFound $e) {
             return [];
         }
@@ -378,14 +378,14 @@ class MeetHelper
         // 聯席會議的代碼含逗號（聯席會議-11-6-26,19-2），v2 的單筆 endpoint 會把逗號當多個 id 而失敗，改用清單查
         if (strpos($id, ',') === false) {
             try {
-                $res = LYAPI::apiQuery(LYAPI::path(['meet', $id]), "會議 {$id}", 600);
+                $res = LYAPI::apiQuery(LYAPI::path(['meet', $id]), "會議 {$id}");
                 $m = $res->data ?? $res;
             } catch (LYAPI_NotFound $e) {
             }
         }
         if (empty($m->會議代碼)) {
             $qs = LYAPI::qs(['會議代碼' => $id, 'limit' => 1]);
-            $res = LYAPI::apiQuery("/meets?{$qs}", "會議 {$id}", 600);
+            $res = LYAPI::apiQuery("/meets?{$qs}", "會議 {$id}");
             $m = $res->meets[0] ?? null;
         }
         if (empty($m->會議代碼)) {
@@ -402,7 +402,7 @@ class MeetHelper
         $meets = [];
         foreach (array_chunk($ids, 50) as $chunk) {
             $qs = LYAPI::qs(['會議代碼' => $chunk, 'limit' => count($chunk), 'output_fields' => self::MEET_FIELDS]);
-            $res = LYAPI::apiQuery("/meets?{$qs}", '多場會議的資料', 3600);
+            $res = LYAPI::apiQuery("/meets?{$qs}", '多場會議的資料');
             foreach ($res->meets ?? [] as $m) {
                 $meets[$m->會議代碼] = self::decorate($m);
             }
@@ -422,7 +422,7 @@ class MeetHelper
         $with_speeches = [];
         foreach (array_chunk($ids, 40) as $chunk) {
             $qs = LYAPI::qs(['會議資料.會議代碼' => $chunk, '影片種類' => 'Full', 'limit' => 500, 'output_fields' => ['IVOD_ID', 'IVOD_URL', '會議資料', '支援功能', '日期', '開始時間', '結束時間', '影片長度', 'video_url']]);
-            $res = LYAPI::apiQuery("/ivods?{$qs}", '多場會議的完整影片', 600);
+            $res = LYAPI::apiQuery("/ivods?{$qs}", '多場會議的完整影片');
             foreach ($res->ivods ?? [] as $v) {
                 $mid = $v->會議資料->會議代碼 ?? null;
                 if ($mid) {
@@ -430,7 +430,7 @@ class MeetHelper
                 }
             }
             $qs = LYAPI::qs(['會議代碼' => $chunk, 'limit' => 0, 'agg' => '會議代碼']);
-            $r = LYAPI::speeches($qs, '多場會議有沒有公報發言', 600);
+            $r = LYAPI::speeches($qs, '多場會議有沒有公報發言');
             foreach ($r->aggs[0]->buckets ?? [] as $b) {
                 foreach ((array)$b->會議代碼 as $id) {
                     $with_speeches[$id] = true;
@@ -451,7 +451,7 @@ class MeetHelper
     public static function getIvods($meet_id)
     {
         $qs = LYAPI::qs(['會議資料.會議代碼' => $meet_id, 'limit' => 500, 'output_fields' => ['IVOD_ID', 'IVOD_URL', '會議資料', '影片種類', '支援功能', '日期', '開始時間', '結束時間', '影片長度', '委員名稱', 'video_url']]);
-        $res = LYAPI::apiQuery("/ivods?{$qs}", "會議 {$meet_id} 的影片", 600);
+        $res = LYAPI::apiQuery("/ivods?{$qs}", "會議 {$meet_id} 的影片");
         $fulls = [];
         $clips = [];
         foreach ($res->ivods ?? [] as $v) {
@@ -470,7 +470,7 @@ class MeetHelper
     /** 單支影片（含 AI 逐字稿） */
     public static function getIvod($ivod_id)
     {
-        $res = LYAPI::apiQuery(LYAPI::path(['ivod', $ivod_id]), "影片 {$ivod_id}（含 AI 逐字稿）", 3600);
+        $res = LYAPI::apiQuery(LYAPI::path(['ivod', $ivod_id]), "影片 {$ivod_id}（含 AI 逐字稿）");
         return $res->data ?? $res;
     }
 
@@ -478,7 +478,7 @@ class MeetHelper
     public static function gazetteDocs($meet_id)
     {
         $qs = LYAPI::qs(['會議代碼' => $meet_id, 'limit' => 0, 'agg' => '文件編號']);
-        $res = LYAPI::speeches($qs, "會議 {$meet_id} 的公報文件清單", 1800);
+        $res = LYAPI::speeches($qs, "會議 {$meet_id} 的公報文件清單");
         $docs = [];
         foreach ($res->aggs[0]->buckets ?? [] as $b) {
             $docs[$b->文件編號] = intval($b->count);
@@ -497,7 +497,7 @@ class MeetHelper
             'sort' => '順序<',
             'output_fields' => ['發言編號', '文件編號', '公報編號', '日期', '順序', '區塊種類', '段落', '發言者', '發言者身分', '發言者職稱', '質詢輪次', '質詢輪次委員', '內文', '發言時間', '時間來源', '影片', '公報起始頁', '公報結束頁', '來源網址'],
         ]);
-        $r = LYAPI::speeches($qs, "公報文件 {$doc_id} 的發言", 1800);
+        $r = LYAPI::speeches($qs, "公報文件 {$doc_id} 的發言");
         return (array)($r->speeches ?? []);
     }
 
@@ -511,7 +511,7 @@ class MeetHelper
             'output_fields' => ['段落編號', '切分器', '單元序', '單元名稱', '單元種類', '單元日期', '單元標籤', '段序', '段類型', '段名', '標籤', '段種類', '表決', '文件編號', '發言起', '發言迄', '發言數', '發言者', '摘句', '日期'],
         ]);
         try {
-            $res = LYAPI::apiQuery("/meet_sections?{$qs}", "會議 {$meet_id} 的段落目錄", 1800);
+            $res = LYAPI::apiQuery("/meet_sections?{$qs}", "會議 {$meet_id} 的段落目錄");
         } catch (LYAPI_NotFound $e) {
             return [];
         }
@@ -734,7 +734,7 @@ class MeetHelper
         $out = [];
         foreach (array_chunk(array_slice(array_unique($ids), 0, 100), 50) as $chunk) {
             $qs = LYAPI::qs(['議案編號' => $chunk, 'limit' => count($chunk), 'output_fields' => ['議案編號', '議案名稱', '議案流程', '法律編號', '議案狀態', '提案來源']]);
-            $res = LYAPI::apiQuery("/bills?{$qs}", '這場討論的議案', 3600);
+            $res = LYAPI::apiQuery("/bills?{$qs}", '這場討論的議案');
             foreach ($res->bills ?? [] as $b) {
                 $out[$b->議案編號] = $b;
             }

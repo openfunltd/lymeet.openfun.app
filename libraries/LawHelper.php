@@ -11,7 +11,7 @@ class LawHelper
     public static function get($code)
     {
         try {
-            $res = LYAPI::apiQuery(LYAPI::path(['law', $code]), "法律 {$code}", 86400);
+            $res = LYAPI::apiQuery(LYAPI::path(['law', $code]), "法律 {$code}");
         } catch (LYAPI_NotFound $e) {
             throw $e;
         }
@@ -45,7 +45,7 @@ class LawHelper
     {
         $qs = LYAPI::qs(['q' => '"' . trim($q, '"') . '"', 'limit' => $limit, 'output_fields' => ['法律編號', '名稱', '其他名稱', '別名']]);
         try {
-            $res = LYAPI::apiQuery("/laws?{$qs}", "名稱符合「{$q}」的法律", 3600);
+            $res = LYAPI::apiQuery("/laws?{$qs}", "名稱符合「{$q}」的法律");
         } catch (Exception $e) {
             return [];
         }
@@ -66,7 +66,7 @@ class LawHelper
             'sort' => '最新進度日期>',
             'output_fields' => ['議案編號', '議案名稱', '議案流程', '法律編號', '提案來源', '議案狀態', '提案單位/提案委員', '最新進度日期', '屆'],
         ]);
-        $res = LYAPI::apiQuery("/bills?{$qs}", "法律 {$code} 的議案", 3600);
+        $res = LYAPI::apiQuery("/bills?{$qs}", "法律 {$code} 的議案");
         return (array)($res->bills ?? []);
     }
 
@@ -272,7 +272,7 @@ class LawHelper
         $qs = LYAPI::qs(['q' => '"' . $name . '"', 'limit' => 100, 'sort' => '日期>', 'output_fields' => ['會議代碼', '會議資料']]);
         $subjects = [];
         try {
-            $res = LYAPI::apiQuery("/meets?{$qs}", "事由提到「{$name}」的會議", 3600);
+            $res = LYAPI::apiQuery("/meets?{$qs}", "事由提到「{$name}」的會議");
             foreach ($res->meets ?? [] as $m) {
                 $subjects[$m->會議代碼] = ((array)($m->會議資料 ?? []))[0]->會議事由 ?? '';
                 if (!isset($via[$m->會議代碼])) {
@@ -283,7 +283,7 @@ class LawHelper
         }
         // 發言提到（只是提到）
         $qs = LYAPI::qs(['q' => '"' . $name . '"', '區塊種類' => '發言', 'limit' => 0, 'agg' => '會議代碼']);
-        $res = LYAPI::speeches($qs, "發言提到「{$name}」的會議", 3600);
+        $res = LYAPI::speeches($qs, "發言提到「{$name}」的會議");
         foreach ($res->aggs[0]->buckets ?? [] as $b) {
             foreach ((array)$b->會議代碼 as $id) {
                 if (!isset($via[$id])) {

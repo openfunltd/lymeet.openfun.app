@@ -168,7 +168,7 @@ class LegislatorHelper
             'sort' => '日期>',
             'output_fields' => ['發言編號', '文件編號', '會議代碼', '會議種類', '日期', '發言者', '發言者身分', '內文', '發言時間', '影片', '順序', '段落', '質詢輪次委員'],
         ]);
-        $res = LYAPI::speeches($qs, "{$name} 的發言" . ($q !== '' ? "（{$q}）" : ''), 600);
+        $res = LYAPI::speeches($qs, "{$name} 的發言" . ($q !== '' ? "（{$q}）" : ''));
         $out = new StdClass;
         $out->unavailable = is_null($res);
         $out->total = intval($res->total ?? 0);
@@ -182,7 +182,7 @@ class LegislatorHelper
     public static function meetCount($name)
     {
         $qs = LYAPI::qs(['發言者' => $name, '發言者身分' => '委員', '區塊種類' => '發言', 'limit' => 0, 'agg' => '會議代碼']);
-        $res = LYAPI::speeches($qs, "{$name} 發言過的會議數", 3600);
+        $res = LYAPI::speeches($qs, "{$name} 發言過的會議數");
         if (is_null($res)) {
             return [null, null];
         }
@@ -204,7 +204,7 @@ class LegislatorHelper
             'output_fields' => ['會議代碼', '段名', '單元名稱', '日期', '文件編號', '發言起', '段序', '單元序'],
         ]);
         try {
-            $res = LYAPI::apiQuery("/meet_sections?{$qs}", "{$name} 的那一輪", 3600);
+            $res = LYAPI::apiQuery("/meet_sections?{$qs}", "{$name} 的那一輪");
         } catch (LYAPI_NotFound $e) {
             return [];
         }
