@@ -259,17 +259,27 @@ class LawHelper
      */
     public static function meetsOf($code, $name, array $bills)
     {
+        // 主角：議事網關係文書裡有這部法議案的會議（院會、委員會、聯席會議都有），一次查詢直接拿會議資料，
+        // 不必先抓議案流程再反查上百個會議代碼
+        $meets = [];
         $via = [];
+        $qs = LYAPI::qs(['議事網資料.關係文書.議案.法律編號' => $code, 'limit' => 100, 'sort' => '日期>', 'output_fields' => MeetHelper::LIST_FIELDS]);
+        $res = LYAPI::apiQuery("/meets?{$qs}", "議案關聯「{$name}」的會議");
+        foreach ($res->meets ?? [] as $m) {
+            $meets[$m->會議代碼] = MeetHelper::decorate($m);
+            $via[$m->會議代碼] = '議案';
+        }
+        // 議案流程裡有、但關係文書沒列的會議（例：三讀那一場）也算主角
         foreach ($bills as $b) {
             foreach ((array)($b->議案流程 ?? []) as $f) {
                 $id = $f->會議代碼 ?? '';
-                if ($id !== '') {
+                if ($id !== '' and !isset($via[$id])) {
                     $via[$id] = '議案';
                 }
             }
         }
         // 事由提到
-        $qs = LYAPI::qs(['q' => '"' . $name . '"', 'limit' => 100, 'sort' => '日期>', 'output_fields' => ['會議代碼', '會議資料']]);
+        $qs = LYAPI::qs(['q' => '"' . $name . '"', 'limit' => 100, 'sort' => '日期>', 'output_fields' => MeetHelper::LIST_FIELDS]);
         $subjects = [];
         try {
             $res = LYAPI::apiQuery("/meets?{$qs}", "事由提到「{$name}」的會議");
@@ -277,6 +287,7 @@ class LawHelper
                 $subjects[$m->會議代碼] = ((array)($m->會議資料 ?? []))[0]->會議事由 ?? '';
                 if (!isset($via[$m->會議代碼])) {
                     $via[$m->會議代碼] = '事由';
+                    $meets[$m->會議代碼] = MeetHelper::decorate($m);
                 }
             }
         } catch (Exception $e) {
@@ -291,7 +302,10 @@ class LawHelper
                 }
             }
         }
-        $meets = MeetHelper::getMeets(array_slice(array_keys($via), 0, 150));
+        // 還沒有會議資料的（流程裡的會議、發言提到的）才另外抓；全部補上狀態與段落統計
+        $missing = array_values(array_filter(array_keys($via), fn($id) => !isset($meets[$id])));
+        $meets = $meets + MeetHelper::getMeets(array_slice($missing, 0, 100));
+        MeetHelper::attachStatus(array_filter($meets, fn($m) => empty($m->status_attached)));
         $rows = [];
         foreach ($meets as $id => $m) {
             $row = ['meet' => $m, 'via' => $via[$id], 'tags' => [], 'main' => false, 'only1' => false, 'snippet' => ''];

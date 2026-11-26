@@ -46,7 +46,7 @@ class DeptHelper
     /** 事由邀請這個部會列席的會議，新的在前 */
     public static function meets($name)
     {
-        $qs = LYAPI::qs(['q' => '"' . $name . '"', 'limit' => 200, 'sort' => '日期>', 'output_fields' => MeetHelper::MEET_FIELDS]);
+        $qs = LYAPI::qs(['q' => '"' . $name . '"', 'limit' => 200, 'sort' => '日期>', 'output_fields' => MeetHelper::LIST_FIELDS]);
         $res = LYAPI::apiQuery("/meets?{$qs}", "事由提到{$name}的會議", 3600);
         $meets = [];
         foreach ($res->meets ?? [] as $m) {

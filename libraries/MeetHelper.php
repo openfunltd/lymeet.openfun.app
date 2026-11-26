@@ -22,6 +22,8 @@ class MeetHelper
     const NO_SEG_TYPES = ['考察', '程序委員會', '全院委員談話會'];
 
     const MEET_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '公報發言紀錄', '議事網資料', '三讀法案'];
+    /** 列表用：不帶 議事網資料（院會一場的關係文書有上百件議案，很肥；列表只要標題、事由、狀態） */
+    const LIST_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '公報發言紀錄', '三讀法案'];
 
     public static function defaultTerm()
     {
@@ -57,7 +59,7 @@ class MeetHelper
             '會議種類' => $types,
             'limit' => 500,
             'sort' => '日期<',
-            'output_fields' => self::MEET_FIELDS,
+            'output_fields' => self::LIST_FIELDS,
         ]);
         $res = LYAPI::apiQuery("/meets?{$qs}", "{$from}～{$to} 的會議", 600);
         $fulls = self::fullVideosByMeet($from, $to);
@@ -95,10 +97,17 @@ class MeetHelper
             return;
         }
         $seg = $votes = $threads = [];
-        foreach (array_chunk($ids, 40) as $chunk) {
-            $seg = array_merge($seg, self::sectionAgg(['會議代碼' => $chunk], '會議代碼,切分器'));
-            $votes = array_merge($votes, self::sectionAgg(['會議代碼' => $chunk, '標籤' => '表決'], '會議代碼'));
-            $threads = array_merge($threads, self::sectionAgg(['會議代碼' => $chunk, '標籤' => '三讀'], '會議代碼'));
+        // 一批 60 場：會議代碼串在網址上，再多會超過伺服器的網址長度（414）
+        foreach (array_chunk($ids, 60) as $chunk) {
+            $seg = array_merge($seg, self::sectionAgg(['會議代碼' => $chunk, 'agg_size' => 300], '會議代碼,切分器'));
+            // 會議代碼×標籤 一次拿到每場的表決、三讀段數
+            foreach (self::sectionAgg(['會議代碼' => $chunk, 'agg_size' => 500], '會議代碼,標籤') as $b) {
+                if (($b->標籤 ?? '') === '表決') {
+                    $votes[] = $b;
+                } elseif (($b->標籤 ?? '') === '三讀') {
+                    $threads[] = $b;
+                }
+            }
         }
         self::applySectionAgg($meets, $seg, $votes, $threads);
     }
@@ -400,18 +409,30 @@ class MeetHelper
     {
         $ids = array_values(array_unique(array_filter($ids)));
         $meets = [];
-        foreach (array_chunk($ids, 50) as $chunk) {
-            $qs = LYAPI::qs(['會議代碼' => $chunk, 'limit' => count($chunk), 'output_fields' => self::MEET_FIELDS]);
+        foreach (array_chunk($ids, 100) as $chunk) {
+            $qs = LYAPI::qs(['會議代碼' => $chunk, 'limit' => count($chunk), 'output_fields' => self::LIST_FIELDS]);
             $res = LYAPI::apiQuery("/meets?{$qs}", '多場會議的資料');
             foreach ($res->meets ?? [] as $m) {
                 $meets[$m->會議代碼] = self::decorate($m);
             }
         }
         if ($meets) {
-            self::attachVideoStatus($meets);
-            self::attachSectionsByIds(array_values($meets));
+            self::attachStatus($meets);
         }
         return $meets;
+    }
+
+    /** 補上影片、公報發言、段落統計算出的狀態（decorate() 之後、沒有日期區間時用） */
+    public static function attachStatus(array $meets)
+    {
+        if (!$meets) {
+            return;
+        }
+        self::attachVideoStatus($meets);
+        self::attachSectionsByIds(array_values($meets));
+        foreach ($meets as $m) {
+            $m->status_attached = true;
+        }
     }
 
     /** 沒有日期區間時，用會議代碼補 Full 影片與發言索引，算出狀態 */
@@ -420,8 +441,8 @@ class MeetHelper
         $ids = array_keys($meets);
         $fulls = [];
         $with_speeches = [];
-        foreach (array_chunk($ids, 40) as $chunk) {
-            $qs = LYAPI::qs(['會議資料.會議代碼' => $chunk, '影片種類' => 'Full', 'limit' => 500, 'output_fields' => ['IVOD_ID', 'IVOD_URL', '會議資料', '支援功能', '日期', '開始時間', '結束時間', '影片長度', 'video_url']]);
+        foreach (array_chunk($ids, 60) as $chunk) {
+            $qs = LYAPI::qs(['會議資料.會議代碼' => $chunk, '影片種類' => 'Full', 'limit' => 1000, 'output_fields' => ['IVOD_ID', 'IVOD_URL', '會議資料', '支援功能', '日期', '開始時間', '結束時間', '影片長度', 'video_url']]);
             $res = LYAPI::apiQuery("/ivods?{$qs}", '多場會議的完整影片');
             foreach ($res->ivods ?? [] as $v) {
                 $mid = $v->會議資料->會議代碼 ?? null;
@@ -429,7 +450,7 @@ class MeetHelper
                     $fulls[$mid][] = $v;
                 }
             }
-            $qs = LYAPI::qs(['會議代碼' => $chunk, 'limit' => 0, 'agg' => '會議代碼']);
+            $qs = LYAPI::qs(['會議代碼' => $chunk, 'limit' => 0, 'agg' => '會議代碼', 'agg_size' => 200]);
             $r = LYAPI::speeches($qs, '多場會議有沒有公報發言');
             foreach ($r->aggs[0]->buckets ?? [] as $b) {
                 foreach ((array)$b->會議代碼 as $id) {
