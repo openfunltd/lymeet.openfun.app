@@ -39,7 +39,7 @@ libraries/
   SearchHelper       三個分頁：會議事由／會議文件（/meets q，依 highlight 欄位分流）、發言（/speeches q）；找不到時自動改找較短的詞
   LegislatorHelper   第 8–11 屆名單（該屆黨籍、委員會取最後一個會期）、他的那一輪（meet_sections q 段名）、發言
   LawHelper          法律列表、議案流程 → 修法進度的步驟與分支、討論過這部法的會議（主角／只是提到）
-  DeptHelper         部會候選清單、事由提到的場數
+  DeptHelper         部會：用 meet 的「機關」欄位（LYAPI 匯入端依機關名稱清單從事由比對），agg 算場數、機關= 篩會議
   Glossary           名詞表（文案同 Prototype）、段標籤白名單、修法進度文案
   SiteHelper         日期、黨籍標籤、狀態標籤、一筆會議的各層
 views/common/        header（頁首＋跑馬燈）、footer、meet-row（共用元件 MeetingRow）、filter-bar（FilterBar）
@@ -53,6 +53,7 @@ views/common/        header（頁首＋跑馬燈）、footer、meet-row（共用
 | 會議頁 | `/meet/{id}`、`/ivods?會議資料.會議代碼=`；公報定稿 `/speeches?會議代碼=…&agg=文件編號` 再逐份 `/speeches?文件編號=…&limit=10000`（一次只顯示一份文件，目錄跨文件連結）；段落 `/meet_sections?會議代碼=`（單元依日期排）；AI 轉錄稿 `/ivod/{id}`；議案 `/bills?議案編號=`（同一案的下一步） |
 | 搜尋 | `/meets?q="…"`（會議標題、事由、附件標題；依 `:highlight` 欄位分到事由／文件分頁）、`/speeches?q="…"&區塊種類=發言`、`/laws?q=`、立委名單比對 |
 | 立委 | `/legislators?屆=N`（8–11）、`/speeches?發言者=`、`/meet_sections?q="X委員Y"&段種類=person`（他的那一輪）、`/speeches agg=發言者&agg_size=300`（排序用的發言段數） |
+| 部會 | `/meets?agg=機關&agg_size=200`（列表與首頁）、`/meets?機關=交通部`（部會頁）；首頁「最近 7 天常討論」直接數會議的 `機關` |
 | 法律 | `/law/{code}`、`/bills?法律編號=&屆:8,11`（議案流程每一步都帶會議代碼，院會與委員會都能點）、`/bills agg=法律編號&agg_size=500`（列表） |
 
 ### 會議狀態（`MeetHelper::status()`，不靠 API 的狀態欄位）

@@ -21,9 +21,9 @@ class MeetHelper
     /** 這幾種會議 James 還沒細分：沒有段落目錄 */
     const NO_SEG_TYPES = ['考察', '程序委員會', '全院委員談話會'];
 
-    const MEET_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '公報發言紀錄', '議事網資料', '三讀法案', '資料狀態'];
+    const MEET_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '公報發言紀錄', '議事網資料', '三讀法案', '資料狀態', '機關'];
     /** 列表用：不帶 議事網資料（院會一場的關係文書有上百件議案）和 公報發言紀錄（每份文件的事由與發言人），狀態看 資料狀態 就夠 */
-    const LIST_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '三讀法案', '資料狀態'];
+    const LIST_FIELDS = ['會議代碼', '會議種類', '會議屬性', '日期', '會議標題', '會議資料', '委員會代號', '三讀法案', '資料狀態', '機關'];
 
     public static function defaultTerm()
     {
@@ -304,6 +304,7 @@ class MeetHelper
         if ($o->unit === '' and $o->committees) {
             $o->unit = implode('、', $o->committees);
         }
+        $o->agencies = (array)($m->機關 ?? []);
         $o->gazette_records = (array)($m->公報發言紀錄 ?? []);
         $o->third_reading = (array)($m->三讀法案 ?? []);
         // 匯入端算好的狀態訊號（enrich-signals.php）：有就不必再查 ivod、speech、meet_section

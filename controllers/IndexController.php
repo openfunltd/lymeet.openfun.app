@@ -34,14 +34,15 @@ class IndexController extends MiniEngine_Controller
             $laws[] = $name;
         }
         $examples = array_slice($laws, 0, 2);
+        // 最近 7 天的會議提到的機關：直接數 meet 的「機關」欄位
         $depts = [];
-        foreach (DeptHelper::CANDIDATES as $d) {
-            if ($d === '行政院') {
-                continue;
-            }
-            $n = mb_substr_count($text, $d);
-            if ($n) {
-                $depts[$d] = $n;
+        foreach ($meets as $m) {
+            if ($m->date >= SiteHelper::addDays($today, -7) and $m->date <= $today) {
+                foreach ($m->agencies as $d) {
+                    if ($d !== '行政院') {
+                        $depts[$d] = ($depts[$d] ?? 0) + 1;
+                    }
+                }
             }
         }
         arsort($depts);
