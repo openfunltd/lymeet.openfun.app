@@ -12,7 +12,7 @@
 ## 技術棧與原則
 
 - PHP，框架 **mini-engine**（`mini-engine.php`，單檔 MVC）。
-- **沒有資料庫**：所有資料即時向 LYAPI v2（`https://v2.ly.govapi.tw`）查，`libraries/LYAPI.php` 做 `/tmp/lymeet-cache-*.json` 檔案快取。頁尾「本頁使用的 API」列出這一頁打過的 API。
+- **沒有資料庫**：所有資料即時向 LYAPI v2（`https://v2.ly.govapi.tw`）查，不做任何快取（2026-11-26 決定），每一頁即時查。頁尾「本頁使用的 API」列出這一頁打過的 API。
 - 前端：伺服器端 render 的 PHP view，`static/css/common.css`（直播台風格；手機 600px 以下照資訊架構第 6 節）、`static/js/common.js`，無建置流程。影片用 hls.js（cdnjs）播 IVOD 的 m3u8；下載片段用 ffmpeg.wasm（`static/js/clip.js`，沿用 dataly-v2）。
 - 影片一律播 **Full（完整會議）**；Clip（委員片段）只拿「委員名稱＋起訖時間」當時間軸的標籤。
 - 本機啟動：`php -S 0:8889 route.php`；`config.inc.php`（不進 git）可把 `LYAPI_HOST` 指到本機跑的 v2。

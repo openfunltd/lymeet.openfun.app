@@ -19,7 +19,7 @@ class LegislatorHelper
             'limit' => 300,
             'output_fields' => ['委員姓名', '黨籍', '黨團', '選區名稱', '照片位址', '是否離職', '離職日期', '離職原因', '委員會', '到職日'],
         ]);
-        $res = LYAPI::apiQuery("/legislators?{$qs}", "第 {$term} 屆立委名單", 86400);
+        $res = LYAPI::apiQuery("/legislators?{$qs}", "第 {$term} 屆立委名單");
         $people = [];
         foreach ($res->legislators ?? [] as $l) {
             $name = trim($l->委員姓名);
@@ -107,7 +107,7 @@ class LegislatorHelper
     public static function speechCounts($term)
     {
         $qs = LYAPI::qs(['屆' => $term, '區塊種類' => '發言', '發言者身分' => '委員', 'limit' => 0, 'agg' => '發言者', 'agg_size' => 300]);
-        $res = LYAPI::speeches($qs, "第 {$term} 屆每位委員的發言段數", 86400);
+        $res = LYAPI::speeches($qs, "第 {$term} 屆每位委員的發言段數");
         $out = [];
         foreach ($res->aggs[0]->buckets ?? [] as $b) {
             $out[$b->發言者] = intval($b->count);

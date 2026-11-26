@@ -26,7 +26,7 @@ class LawHelper
     public static function listLaws()
     {
         $qs = LYAPI::qs(['屆:' => '8,11', 'limit' => 0, 'agg' => '法律編號', 'agg_size' => 500]);
-        $res = LYAPI::apiQuery("/bills?{$qs}", '有議案的法律（依議案數）', 86400);
+        $res = LYAPI::apiQuery("/bills?{$qs}", '有議案的法律（依議案數）');
         $out = [];
         foreach ($res->aggs[0]->buckets ?? [] as $b) {
             $code = is_array($b->法律編號) ? ($b->法律編號[0] ?? '') : $b->法律編號;

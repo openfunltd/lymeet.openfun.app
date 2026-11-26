@@ -11,7 +11,7 @@ class DeptHelper
         $today = SiteHelper::today();
         $from = SiteHelper::addDays($today, -730);
         $qs = LYAPI::qs(['日期:' => "{$from},{$today}", 'limit' => 0, 'agg' => '機關', 'agg_size' => 200]);
-        $res = LYAPI::apiQuery("/meets?{$qs}", '各機關的會議場數', 86400);
+        $res = LYAPI::apiQuery("/meets?{$qs}", '各機關的會議場數');
         $out = [];
         foreach ($res->aggs[0]->buckets ?? [] as $b) {
             $name = is_array($b->機關) ? ($b->機關[0] ?? '') : $b->機關;

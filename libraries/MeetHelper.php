@@ -39,7 +39,7 @@ class MeetHelper
         }
         $map = [];
         try {
-            $res = LYAPI::apiQuery('/committees?limit=100', '委員會清單', 86400);
+            $res = LYAPI::apiQuery('/committees?limit=100', '委員會清單');
             foreach ($res->committees ?? [] as $c) {
                 $map[intval($c->委員會代號)] = $c->委員會名稱;
             }
@@ -61,7 +61,7 @@ class MeetHelper
             'sort' => '日期<',
             'output_fields' => self::LIST_FIELDS,
         ]);
-        $res = LYAPI::apiQuery("/meets?{$qs}", "{$from}～{$to} 的會議", 600);
+        $res = LYAPI::apiQuery("/meets?{$qs}", "{$from}～{$to} 的會議");
         $meets = [];
         $need = [];
         foreach ($res->meets ?? [] as $m) {
@@ -164,7 +164,7 @@ class MeetHelper
     {
         $qs = LYAPI::qs(array_merge($filter, ['limit' => 0, 'agg' => $agg]));
         try {
-            $res = LYAPI::apiQuery("/meet_sections?{$qs}", '段落目錄的統計（' . $agg . '）', isset($filter['日期:']) ? 1800 : null);
+            $res = LYAPI::apiQuery("/meet_sections?{$qs}", '段落目錄的統計（' . $agg . '）');
         } catch (LYAPI_NotFound $e) {
             return [];
         }
@@ -218,7 +218,7 @@ class MeetHelper
     public static function meetsWithSpeeches($from, $to)
     {
         $qs = LYAPI::qs(['日期:' => "{$from},{$to}", 'limit' => 0, 'agg' => '會議代碼']);
-        $res = LYAPI::speeches($qs, "{$from}～{$to} 已有公報發言的會議", 600);
+        $res = LYAPI::speeches($qs, "{$from}～{$to} 已有公報發言的會議");
         $ids = [];
         foreach ($res->aggs[0]->buckets ?? [] as $b) {
             foreach ((array)$b->會議代碼 as $id) {
@@ -237,7 +237,7 @@ class MeetHelper
             'limit' => 1000,
             'output_fields' => ['IVOD_ID', 'IVOD_URL', '會議資料', '支援功能', '日期', '開始時間', '結束時間', '影片長度', 'video_url'],
         ]);
-        $res = LYAPI::apiQuery("/ivods?{$qs}", "{$from}～{$to} 的完整會議影片", 600);
+        $res = LYAPI::apiQuery("/ivods?{$qs}", "{$from}～{$to} 的完整會議影片");
         $by_meet = [];
         foreach ($res->ivods ?? [] as $v) {
             $mid = $v->會議資料->會議代碼 ?? null;
@@ -807,7 +807,7 @@ class MeetHelper
         $out = ['today' => $today, 'live' => 0, 'next' => null, 'ai' => null, 'third' => null];
         try {
             $qs = LYAPI::qs(['日期:' => SiteHelper::addDays($today, 1) . ',' . SiteHelper::addDays($today, 30), 'limit' => 1, 'sort' => '日期<', 'output_fields' => ['會議代碼', '會議種類', '日期', '會議標題', '會議資料']]);
-            $res = LYAPI::apiQuery("/meets?{$qs}", '跑馬燈：下一場', 600);
+            $res = LYAPI::apiQuery("/meets?{$qs}", '跑馬燈：下一場');
             if (!empty($res->meets[0])) {
                 $m = $res->meets[0];
                 $md = ((array)($m->會議資料 ?? []))[0] ?? null;
@@ -818,7 +818,7 @@ class MeetHelper
         }
         try {
             $qs = LYAPI::qs(['影片種類' => 'Full', '支援功能' => 'ai-transcript', 'limit' => 1, 'sort' => '日期>', 'output_fields' => ['IVOD_ID', '會議資料', '日期', '會議名稱']]);
-            $res = LYAPI::apiQuery("/ivods?{$qs}", '跑馬燈：新上線 AI 轉錄稿', 600);
+            $res = LYAPI::apiQuery("/ivods?{$qs}", '跑馬燈：新上線 AI 轉錄稿');
             if (!empty($res->ivods[0])) {
                 $v = $res->ivods[0];
                 $out['ai'] = ['id' => $v->會議資料->會議代碼 ?? null, 'title' => $v->會議資料->{'會議代碼:str'} ?? ($v->會議名稱 ?? ''), 'date' => $v->日期];
@@ -827,7 +827,7 @@ class MeetHelper
         }
         try {
             $qs = LYAPI::qs(['會議種類' => '院會', '會議屬性' => '三讀', '日期:' => SiteHelper::addDays($today, -180) . ",{$today}", 'limit' => 1, 'sort' => '日期>', 'output_fields' => ['會議代碼', '日期', '三讀法案']]);
-            $res = LYAPI::apiQuery("/meets?{$qs}", '跑馬燈：最近三讀', 600);
+            $res = LYAPI::apiQuery("/meets?{$qs}", '跑馬燈：最近三讀');
             if (!empty($res->meets[0])) {
                 $m = $res->meets[0];
                 $out['third'] = ['id' => $m->會議代碼, 'date' => max((array)$m->日期), 'n' => count((array)($m->三讀法案 ?? []))];

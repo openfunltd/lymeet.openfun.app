@@ -1,7 +1,7 @@
 <?php
 /**
  * v2 LYAPI（https://v2.ly.govapi.tw）的查詢包裝。本站沒有資料庫，所有資料都即時向 LYAPI 查，
- * 本機只做檔案快取（/tmp/lymeet-cache-*.json）。
+ * 不做快取：每一頁都即時查（2026-11-26 決定全拔，LYAPI 端的 資料狀態、機關 欄位出來後單一查詢都在 0.5 秒內）。
  *
  * 環境變數：LYAPI_HOST（預設 v2.ly.govapi.tw）、LYAPI_SCHEME（預設 https）、LYAPI_TOKEN（選用）
  */
@@ -44,24 +44,10 @@ class LYAPI
     /**
      * @param string $url    路徑含 query string，例：/meets?limit=10
      * @param string $reason 顯示在頁尾「本頁使用的 API」
-     * @param int    $cache  快取秒數；null（預設）不寫檔。只有全站共用、數量有限的查詢（委員會清單、各屆立委名單、
-     *                       法律列表、部會場數、跑馬燈、首頁與會議列表的日期區間）才給秒數；
-     *                       每場會議、每份公報文件、每個搜尋詞的查詢都不快取，否則 /tmp 會堆到幾萬個檔
      */
-    public static function apiQuery($url, $reason, $cache = null)
+    public static function apiQuery($url, $reason)
     {
         $full_url = getenv('LYAPI_SCHEME') . '://' . getenv('LYAPI_HOST') . $url;
-        $cache_file = null;
-        if (!is_null($cache)) {
-            $cache_file = sprintf('/tmp/lymeet-cache-%s.json', md5($full_url));
-            if (file_exists($cache_file) and (time() - filemtime($cache_file)) < $cache and !($_GET['nocache'] ?? false)) {
-                $json = json_decode(file_get_contents($cache_file));
-                if ($json) {
-                    self::$log[] = [$full_url, $reason, 'cached'];
-                    return $json;
-                }
-            }
-        }
 
         $curl = curl_init();
         $headers = ['Accept: application/json'];
@@ -101,33 +87,16 @@ class LYAPI
         if (is_null($json)) {
             throw new Exception("LYAPI invalid JSON: {$url}");
         }
-        if ($cache_file) {
-            file_put_contents($cache_file, $res);
-            self::pruneCache();
-        }
         return $json;
-    }
-
-    /** 每寫 100 次快取清一次超過兩天沒更新的舊檔，避免越堆越多 */
-    protected static function pruneCache()
-    {
-        if (mt_rand(1, 100) !== 1) {
-            return;
-        }
-        foreach (glob('/tmp/lymeet-cache-*.json') ?: [] as $f) {
-            if (time() - @filemtime($f) > 2 * 86400) {
-                @unlink($f);
-            }
-        }
     }
 
     /**
      * /speeches 的查詢；端點還沒部署（404）時回 null，讓頁面降級顯示而不是整頁出錯。
      */
-    public static function speeches($qs, $reason, $cache = null)
+    public static function speeches($qs, $reason)
     {
         try {
-            return self::apiQuery("/speeches?{$qs}", $reason, $cache);
+            return self::apiQuery("/speeches?{$qs}", $reason);
         } catch (LYAPI_Unavailable $e) {
             self::$log[] = [getenv('LYAPI_SCHEME') . '://' . getenv('LYAPI_HOST') . "/speeches?{$qs}", $reason, '尚未部署'];
             return null;
