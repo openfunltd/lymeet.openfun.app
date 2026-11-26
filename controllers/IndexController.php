@@ -103,7 +103,8 @@ class IndexController extends MiniEngine_Controller
     public function robotsAction()
     {
         header('Content-Type: text/plain');
-        echo "User-agent: *\nCrawl-delay: 10\n";
+        // 搜尋、公報文件分頁、影片切換這些帶參數的頁面不給爬，一場院會 26 份文件乘上全站會把 LYAPI 打爆
+        echo "User-agent: *\nCrawl-delay: 10\nDisallow: /search\nDisallow: /*?doc=\nDisallow: /*?view=\nDisallow: /*?ivod=\nDisallow: /*?nocache=\nDisallow: /*?page=\nDisallow: /*?before=\n";
         return $this->noview();
     }
 }
